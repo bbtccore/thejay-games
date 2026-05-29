@@ -1,44 +1,30 @@
-# Validator Hub
-
-Web UI untuk manage wallet dan validator Cosmos SDK chain. Support 2 tipe user: **Validator Owner** dan **Regular Wallet**.
-
-## User Types
+Web UI for managing wallets and validators on a Cosmos SDK chain. Supports 2 types of users: Validator Owner and Regular Wallet
 
 ### Regular Wallet
-- Send, Claim Rewards, Delegate, Move (Redelegate), Unbond
-- View delegations: total staked, rewards, validator list
-- Create Wallet - generate mnemonic local
+-Send, claim rewards, delegate, redelegate (move stake), and unbond
+-View delegations: total staked amount, rewards, and validator list
+-Create wallet – generate mnemonic locally
 
 ### Validator Owner
-- Semua fitur Regular Wallet
-- Plus: Unjail, Edit Validator (commission rate)
+-All Regular Wallet features
+Plus:
+-Unjail validator
+-Edit validator settings (commission rate)
+-Detect and list validators that are currently inactive / not participating in consensus
+Show validator status clearly: Active / Inactive / Jailed / Unbonded
 
 ## Tech Stack
-
 - Vite + Vanilla JS
 - CosmJS untuk signing
 - Tailwind CSS
 
 ## Setup
+`npm install && npm run dev`
 
-1. Copy `.env.example` ke `.env`
-2. Edit RPC, REST, Chain ID di `.env`
-3. `npm install && npm run dev`
+## screenshoot
+![Screenshot 1](https://raw.githubusercontent.com/catsmile100/thejay-games/refs/heads/main/tool-hub/screenshoot1.png)
 
-## Deploy
+![Screenshot 2](https://raw.githubusercontent.com/catsmile100/thejay-games/refs/heads/main/tool-hub/screenshoot2.png)
 
-```bash
-vercel --prod
-```
-
-## ENV Variables
-
-- `VITE_RPC` - RPC endpoint (https)
-- `VITE_REST` - REST endpoint (https)
-- `VITE_CHAIN_ID` - Chain ID
-- `VITE_DENOM` - Base denom (e.g. ujay)
-- `VITE_COIN_DENOM` - Display denom (e.g. JAY)
-
-## Live Demo
-
+## Live 
 https://thejay-hub.catsmilepro.space/
