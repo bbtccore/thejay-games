@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JAY Crash - Hodl the Line</title>
+<style>
+  /* ============================================================
+     RESET & BASE
+     ============================================================ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0a0e1a;
+    color: #e6edf3;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+  }
+
+  :root {
+    --emerald: #10d9a0;
+    --emerald-dim: #0a8c66;
+    --emerald-glow: rgba(16, 217, 160, 0.4);
+    --gold: #f4b400;
+    --gold-glow: rgba(244, 180, 0, 0.4);
+    --red: #ff4757;
+    --red-glow: rgba(255, 71, 87, 0.5);
+    --purple: #9d5cff;
+    --purple-glow: rgba(157, 92, 255, 0.4);
+    --bg-1: #0a0e1a;
+    --bg-2: #131826;
+    --bg-3: #1a2030;
+    --text: #e6edf3;
+    --text-dim: #8b95a8;
+  }
+
+  /* ============================================================
+     LAYOUT
+     ============================================================ */
+  #app { width: 100vw; height: 100vh; display: flex; flex-direction: column; position: relative; }
+  #topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 16px; background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+    border-bottom: 1px solid rgba(255,255,255,0.06); z-index: 10;
+    flex-shrink: 0;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--emerald), var(--purple));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px; color: #0a0e1a;
+    box-shadow: 0 0 12px var(--emerald-glow);
+  }
+  .brand-text { font-weight: 700; font-size: 14px; letter-spacing: 0.5px; }
+  .brand-sub { font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; }
+
+  .ticker { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+  .ticker-symbol { color: var(--gold); }
+  .ticker-price { font-variant-numeric: tabular-nums; }
+  .ticker-change { padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+  .ticker-change.up { background: rgba(16, 217, 160, 0.15); color: var(--emerald); }
+  .ticker-change.down { background: rgba(255, 71, 87, 0.15); color: var(--red); }
+
+  .hud { display: flex; gap: 14px; font-size: 11px; }
+  .hud-item { display: flex; flex-direction: column; align-items: flex-end; }
+  .hud-label { color: var(--text-dim); font-size: 9px; letter-spacing: 1px; }
+  .hud-sub { color: var(--text-dim); font-size: 8px; letter-spacing: 0.5px; opacity: 0.7; margin-top: 1px; }
+  .hud-val { font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text); }
+  .hud-val.gold { color: var(--gold); }
+  .hud-val.emerald { color: var(--emerald); }
+
+  /* ============================================================
+     MAIN AREA: chart + side feed
+     ============================================================ */
+  #main { flex: 1; display: flex; min-height: 0; }
+
+  #feed {
+    width: 180px; background: var(--bg-2);
+    border-right: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .feed-header {
+    padding: 10px 12px; font-size: 10px; letter-spacing: 1.5px;
+    color: var(--text-dim); text-transform: uppercase; font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .feed-body { flex: 1; overflow: hidden; padding: 4px 0; position: relative; }
+  .feed-item {
+    padding: 4px 12px; font-size: 11px; display: flex; gap: 8px; align-items: center;
+    font-variant-numeric: tabular-nums;
+    animation: feedIn 0.3s ease-out;
+  }
+  .feed-item.win { color: var(--emerald); }
+  .feed-item.loss { color: var(--red); }
+  .feed-item .name { color: var(--text-dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feed-item .mult { font-weight: 700; }
+  @keyframes feedIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 720px) { #feed { width: 100px; } .feed-item { font-size: 9px; padding: 3px 6px; } .feed-item .name { max-width: 40px; } }
+  @media (max-width: 480px) { #feed { display: none; } }
+
+  /* ============================================================
+     CANVAS CHART
+     ============================================================ */
+  #chart-wrap {
+    flex: 1; position: relative; min-width: 0;
+    background:
+      radial-gradient(ellipse at 50% 100%, rgba(157, 92, 255, 0.10) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 0%, rgba(16, 217, 160, 0.08) 0%, transparent 50%),
+      linear-gradient(180deg, var(--bg-1) 0%, #050810 100%);
+  }
+  #chart { display: block; width: 100%; height: 100%; }
+
+  #multiplier-display {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none; z-index: 2;
+    text-shadow: 0 0 24px rgba(0,0,0,0.5);
+  }
+  #mult-val {
+    font-size: 80px; font-weight: 900; line-height: 1;
+    font-variant-numeric: tabular-nums; letter-spacing: -2px;
+    color: var(--text); transition: color 0.15s;
+  }
+  #mult-val.flying { color: var(--emerald); }
+  #mult-val.crashed { color: var(--red); animation: shake 0.4s; }
+  #mult-val.cashed { color: var(--gold); }
+  #mult-state { font-size: 12px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+
+  @media (max-width: 720px) {
+    #mult-val { font-size: 56px; }
+  }
+  @media (max-width: 480px) {
+    #mult-val { font-size: 44px; }
+  }
+
+  /* ============================================================
+     BOTTOM PANEL
+     ============================================================ */
+  #panel {
+    background: var(--bg-2);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 10px 14px; display: flex; gap: 12px; align-items: center;
+    flex-shrink: 0;
+  }
+  .panel-section { display: flex; flex-direction: column; gap: 4px; }
+  .panel-label { font-size: 9px; letter-spacing: 1.5px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; }
+
+  #bet-display {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg-3); padding: 6px 10px; border-radius: 6px;
+    font-weight: 700; font-size: 16px; min-width: 100px; justify-content: space-between;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .bet-btn {
+    background: transparent; border: none; color: var(--emerald);
+    font-size: 16px; cursor: pointer; padding: 0 4px; font-weight: 700;
+  }
+  .bet-btn:hover { color: var(--gold); }
+  .bet-amount { color: var(--gold); font-variant-numeric: tabular-nums; }
+
+  #action-btn {
+    background: linear-gradient(135deg, var(--emerald), var(--emerald-dim));
+    color: #0a0e1a; border: none; padding: 14px 24px;
+    border-radius: 8px; font-weight: 800; font-size: 16px;
+    cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+    box-shadow: 0 4px 16px var(--emerald-glow);
+    transition: all 0.15s; min-width: 140px;
+    position: relative; overflow: hidden;
+  }
+  #action-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px var(--emerald-glow); }
+  #action-btn:active:not(:disabled) { transform: translateY(0); }
+  #action-btn:disabled { background: var(--bg-3); color: var(--text-dim); box-shadow: none; cursor: not-allowed; }
+  #action-btn.hodl { background: linear-gradient(135deg, var(--gold), #d4970a); box-shadow: 0 4px 16px var(--gold-glow); }
+
+  .quick-bets { display: flex; gap: 4px; }
+  .quick-bet {
+    background: var(--bg-3); border: 1px solid rgba(255,255,255,0.06);
+    color: var(--text); padding: 6px 8px; border-radius: 4px; font-size: 11px;
+    cursor: pointer; font-weight: 600; transition: all 0.1s;
+  }
+  .quick-bet:hover { background: var(--bg-1); border-color: var(--emerald); color: var(--emerald); }
+  .quick-bet.active { background: var(--emerald-dim); color: white; border-color: var(--emerald); }
+
+  .panel-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .auto-cashout {
+    background: var(--bg-3); border: 1px solid rgba(255,255,255,0.06);
+    color: var(--text); padding: 6px 8px; border-radius: 4px;
+    font-size: 12px; width: 70px; text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .auto-cashout:focus { outline: none; border-color: var(--purple); }
+
+  /* ============================================================
+     OVERLAYS
+     ============================================================ */
+  .overlay {
+    position: absolute; inset: 0; background: rgba(10, 14, 26, 0.92);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100; backdrop-filter: blur(8px);
+  }
+  .overlay.show { display: flex; animation: fadeIn 0.3s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 32px; max-width: 480px; width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal h1 {
+    font-size: 28px; font-weight: 900; margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--emerald), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; letter-spacing: -0.5px;
+  }
+  .modal .tagline { color: var(--text-dim); font-size: 13px; margin-bottom: 20px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .modal p { color: var(--text-dim); line-height: 1.6; margin-bottom: 16px; font-size: 14px; }
+  .modal p strong { color: var(--text); }
+  .modal ul { color: var(--text-dim); line-height: 1.8; font-size: 13px; list-style: none; margin-bottom: 24px; }
+  .modal ul li::before { content: '◆ '; color: var(--emerald); }
+  .modal .legal { font-size: 10px; color: var(--text-dim); opacity: 0.6; margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--emerald), var(--emerald-dim));
+    color: #0a0e1a; border: none; padding: 14px 28px; border-radius: 8px;
+    font-weight: 800; font-size: 15px; cursor: pointer; letter-spacing: 1px;
+    text-transform: uppercase; width: 100%;
+    box-shadow: 0 4px 16px var(--emerald-glow);
+  }
+  .btn-primary:hover { transform: translateY(-1px); }
+
+  .stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0 24px;
+  }
+  .stat { background: var(--bg-3); padding: 10px; border-radius: 6px; }
+  .stat-label { font-size: 9px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .stat-val { font-size: 18px; font-weight: 800; color: var(--text); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .stat-val.gold { color: var(--gold); }
+  .stat-val.emerald { color: var(--emerald); }
+  .stat-val.red { color: var(--red); }
+
+  /* ============================================================
+     TOAST
+     ============================================================ */
+  #toast {
+    position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-2); border: 1px solid var(--emerald);
+    color: var(--emerald); padding: 8px 16px; border-radius: 6px;
+    font-size: 13px; font-weight: 700; z-index: 50;
+    opacity: 0; pointer-events: none; transition: all 0.3s;
+    box-shadow: 0 4px 16px var(--emerald-glow);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(8px); }
+  #toast.loss { color: var(--red); border-color: var(--red); box-shadow: 0 4px 16px var(--red-glow); }
+  #toast.gold { color: var(--gold); border-color: var(--gold); box-shadow: 0 4px 16px var(--gold-glow); }
+
+  /* ============================================================
+     PARTICLES
+     ============================================================ */
+  .confetti { position: absolute; pointer-events: none; z-index: 99; }
+
+  @media (max-width: 720px) {
+    .panel-section { gap: 2px; }
+    #action-btn { min-width: 100px; padding: 12px 14px; font-size: 14px; }
+    .quick-bet { padding: 4px 6px; font-size: 10px; }
+    .auto-cashout { width: 56px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="topbar">
+    <div class="brand">
+      <div class="brand-mark">J</div>
+      <div>
+        <div class="brand-text">JAY Crash</div>
+        <div class="brand-sub">HODL the Line</div>
+      </div>
+    </div>
+    <div class="ticker">
+      <span class="ticker-symbol">JAY</span>
+      <span class="ticker-price" id="ticker-price">$0.0024</span>
+      <span class="ticker-change up" id="ticker-change">+0.0%</span>
+    </div>
+    <div class="hud">
+      <div class="hud-item"><div class="hud-label">SCORE</div><div class="hud-val" id="hud-balance">1000</div><div class="hud-sub" id="hud-balance-jay">= 1.00 JAY</div></div>
+      <div class="hud-item"><div class="hud-label">PROFIT</div><div class="hud-val gold" id="hud-profit">0</div><div class="hud-sub" id="hud-profit-jay">= 0.00 JAY</div></div>
+      <div class="hud-item"><div class="hud-label">STREAK</div><div class="hud-val emerald" id="hud-streak">0x</div><div class="hud-sub">&nbsp;</div></div>
+      <div class="hud-item"><div class="hud-label">BEST</div><div class="hud-val" id="hud-best" style="color:var(--purple);font-size:11px">0x</div><div class="hud-sub">&nbsp;</div></div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="feed">
+      <div class="feed-header">⛓ CHAIN ACTIVITY</div>
+      <div class="feed-body" id="feed-body"></div>
+    </div>
+    <div id="chart-wrap">
+      <canvas id="chart"></canvas>
+      <div id="multiplier-display">
+        <div id="mult-val">1.00x</div>
+        <div id="mult-state">WAITING FOR ROUND</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div class="panel-section">
+      <div class="panel-label">BET (SCORE) <span style="color:var(--text-dim);font-weight:normal;font-size:9px">· 1000 = 1 JAY</span></div>
+      <div id="bet-display">
+        <button class="bet-btn" id="bet-down">−</button>
+        <span class="bet-amount" id="bet-amount">200</span>
+        <button class="bet-btn" id="bet-up">+</button>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">QUICK</div>
+      <div class="quick-bets" id="quick-bets">
+        <button class="quick-bet" data-bet="100">100</button>
+        <button class="quick-bet active" data-bet="200">200</button>
+        <button class="quick-bet" data-bet="500">500</button>
+        <button class="quick-bet" data-bet="1000">1000</button>
+        <button class="quick-bet" data-bet="100">MAX</button>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">AUTO CASH-OUT</div>
+      <input type="number" class="auto-cashout" id="auto-cashout" min="1.01" max="1000" step="0.1" value="2.0" placeholder="2.0x">
+    </div>
+    <button id="action-btn">▶ BUY</button>
+  </div>
+
+  <div id="toast"></div>
+
+  <div class="overlay show" id="overlay-menu">
+    <div class="modal">
+      <h1>JAY Crash</h1>
+      <div class="tagline">HODL the Line</div>
+      <p>The multiplier climbs. The chart flies. <strong>Cash out before the rug pull</strong> — or lose your SCORE to the void.</p>
+      <p style="font-size: 12px; opacity: 0.7;">Every round, the chain commits a hash. The crash point is derived from it. No rugs without proof.</p>
+      <ul>
+        <li>Start with <strong>1,000 SCORE</strong> demo balance <span style="opacity:0.6">(= 1 JAY)</span></li>
+        <li>Click <strong>BUY</strong> to enter the round</li>
+        <li>Multiplier climbs — click <strong>HODL</strong> to lock your win</li>
+        <li>Set <strong>auto cash-out</strong> to lock in automatically</li>
+        <li>Each round, a new block is committed. The number doesn't lie.</li>
+      </ul>
+      <button class="btn-primary" id="btn-start">▶ START TRADING</button>
+      <div class="legal">⚠ Demo balance. No real money. Not financial advice. Crypto is volatile. Just for fun.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ============================================================
+  // CONSTANTS
+  // ============================================================
+  const HOUSE_EDGE = 0.04;
+  const COUNTDOWN_SEC = 5;
+  const BET_MIN = 100;
+  const BET_MAX = 1000;
+  const BET_STEP = 100;
+  const STORAGE_KEY = 'jayCrashSave';
+  const FEED_TEMPLATES = [
+    { name: '0xSatoshi', win: true },
+    { name: 'pebbles', win: false },
+    { name: 'hodl_king', win: true },
+    { name: 'rekt.eth', win: false },
+    { name: 'diamond.sol', win: true },
+    { name: 'ngmi.bnb', win: false },
+    { name: 'fomooor', win: true },
+    { name: 'rugdoc', win: false },
+    { name: 'wagmi.lens', win: true },
+    { name: 'paper_hnds', win: false },
+    { name: 'wen_lambo', win: true },
+    { name: 'shortsqueeze', win: false },
+    { name: 'moonboy', win: true },
+    { name: 'exit_liquidity', win: false },
+    { name: 'gigabrain', win: true },
+  ];
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  const STATE = { WAITING: 0, COUNTDOWN: 1, FLYING: 2, CRASHED: 3, CASHED: 4 };
+  let game = {
+    state: STATE.WAITING,
+    balance: 100,
+    profit: 0,
+    streak: 0,
+    maxStreak: 0,
+    sessionStreak: 0,
+    bet: 100,
+    autoCashout: 2.0,
+    crashPoint: 0,
+    currentMult: 1.0,
+    elapsed: 0,
+    countdownT: 0,
+    blockNum: 2841000,
+    blockHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+    seed: 0,
+    curve: [], // array of {t, m} for history
+    sessionProfit: 0,
+  };
+  let save = { balance: 100, bestProfit: 0, maxStreak: 0, totalRounds: 0, totalWins: 0, faucetClaims: 0 };
+
+  // ============================================================
+  // SAVE / LOAD
+  // ============================================================
+  function loadSave() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        Object.assign(save, parsed);
+        if (typeof parsed.balance === 'number' && parsed.balance >= 0) {
+          // Fix #7: if user reloads with balance=0, give them a fresh 100
+          // (This is a demo game; nobody should be stuck)
+          game.balance = parsed.balance < 1 ? 100 : parsed.balance;
+          if (parsed.balance < 1) {
+            save.balance = 100;
+            // Reset faucet claim count too since we're giving free money
+            save.faucetClaims = 0;
+          }
+        }
+        if (typeof parsed.maxStreak === 'number') game.maxStreak = parsed.maxStreak;
+      }
+    } catch {}
+  }
+  function persistSave() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(save)); } catch {}
+  }
+  function updateBestStats() {
+    if (game.profit > save.bestProfit) save.bestProfit = game.profit;
+    if (game.maxStreak > save.maxStreak) save.maxStreak = game.maxStreak;
+    if (game.sessionProfit > save.bestSessionProfit) save.bestSessionProfit = game.sessionProfit;
+    save.balance = game.balance;
+    save.totalRounds = save.totalRounds || 0;
+    save.totalWins = save.totalWins || 0;
+    save.faucetClaims = save.faucetClaims || 0;
+    save.maxStreak = Math.max(save.maxStreak || 0, game.maxStreak);
+    save.bestSessionStreak = Math.max(save.bestSessionStreak || 0, game.sessionStreak);
+    persistSave();
+  }
+  // Fix #2: lighter persist for state changes that aren't round-end
+  // (so tab-close during FLYING doesn't lose state)
+  function persistNow() {
+    save.balance = game.balance;
+    save.faucetClaims = save.faucetClaims || 0;
+    save.maxStreak = Math.max(save.maxStreak || 0, game.maxStreak);
+    save.bestSessionStreak = Math.max(save.bestSessionStreak || 0, game.sessionStreak);
+    save.bestSessionProfit = Math.max(save.bestSessionProfit || 0, game.sessionProfit);
+    persistSave();
+  }
+
+  // ============================================================
+  // CRASH GENERATION (provably fair via block hash)
+  // ============================================================
+  function hexFromSeed(seed) {
+    // Convert integer seed to 8-char hex
+    return seed.toString(16).padStart(8, '0');
+  }
+  function generateBlock() {
+    game.blockNum += 1;
+    // Pseudo-random block hash based on block number + time
+    const seedRaw = (game.blockNum * 2654435761) ^ Date.now();
+    const seed = Math.abs(seedRaw);
+    game.blockHash = '0x' + (Math.abs(seedRaw * 7 + game.blockNum)).toString(16).padStart(8, '0').repeat(8).slice(0, 64);
+    game.seed = seed;
+    // Crash point: houseEdge / (1 - rng) gives ~4% house edge with right skew
+    // Higher rng → higher crash. Cap rng at 0.98 to prevent infinity.
+    let rng = (seed % 100000) / 100000; // [0, 1)
+    if (rng >= 0.98) rng = 0.98;
+    let crash = (1 - HOUSE_EDGE) / (1 - rng);
+    if (crash < 1) crash = 1;
+    // 35% of rounds crash below 1.20x — makes JAY much harder to earn
+    if (rng < 0.35) crash = 1.00 + (rng * 0.57); // 1.00–1.20x range
+    else crash = (1 - HOUSE_EDGE) / (1 - (rng * 0.80 + 0.20)); // compressed upper range
+    if (crash < 1) crash = 1;
+    game.crashPoint = crash;
+  }
+  function multiplierAt(t) {
+    // Sigmoid-like growth: faster at start, asymptotically slows
+    // m = exp(t * 0.1)  gives nice visual curve
+    return Math.exp(t * 0.1);
+  }
+  function timeForMultiplier(m) {
+    return Math.log(m) / 0.1;
+  }
+
+  // ============================================================
+  // DOM REFS
+  // ============================================================
+  const $ = (id) => document.getElementById(id);
+  const canvas = $('chart');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0, DPR = 1;
+
+  function resize() {
+    const wrap = canvas.parentElement;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = wrap.clientWidth; H = wrap.clientHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+
+  // ============================================================
+  // AUDIO
+  // ============================================================
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function beep(freq, dur, type = 'sine', vol = 0.15, slide = 0) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq + slide), audioCtx.currentTime + dur);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + dur);
+  }
+  const sfx = {
+    buy:    () => { beep(440, 0.10, 'square', 0.10, 200); setTimeout(() => beep(660, 0.08, 'sine', 0.12), 80); },
+    cash:   () => [0, 60, 120, 180].forEach((d, i) => setTimeout(() => beep(523 + i * 130, 0.10, 'triangle', 0.16), d)),
+    crash:  () => { beep(180, 0.20, 'sawtooth', 0.18, -120); setTimeout(() => beep(80, 0.30, 'sawtooth', 0.18, -40), 150); },
+    tick:   () => beep(800, 0.05, 'sine', 0.08),
+    win:    () => [0, 80, 160, 240, 320].forEach((d, i) => setTimeout(() => beep(659 + i * 130, 0.12, 'triangle', 0.18), d)),
+    lose:   () => [0, 100, 200].forEach((d, i) => setTimeout(() => beep(220 - d * 0.3, 0.18, 'sawtooth', 0.18), d)),
+    next:   () => { beep(660, 0.06, 'square', 0.08); setTimeout(() => beep(880, 0.06, 'square', 0.08), 70); },
+  };
+
+  // ============================================================
+  // RENDERING
+  // ============================================================
+  function render() {
+    // HUD
+    $('hud-balance').textContent = Math.floor(game.balance).toLocaleString();
+    $('hud-balance-jay').textContent = `= ${(game.balance / 1000).toFixed(2)} JAY`;
+    const profitSign = game.profit > 0 ? '+' : '';
+    $('hud-profit').textContent = profitSign + Math.floor(game.profit).toLocaleString();
+    $('hud-profit-jay').textContent = `= ${(Math.abs(game.profit) / 1000).toFixed(2)} ${game.profit < 0 ? 'LOSS' : 'JAY'}`;
+    $('hud-profit').style.color = game.profit > 0 ? 'var(--gold)' : game.profit < 0 ? 'var(--red)' : 'var(--text-dim)';
+    $('hud-streak').textContent = game.streak + 'x';
+    $('hud-best').textContent = (save.bestSessionStreak || 0) + 'x';
+
+    // Multiplier display
+    const multEl = $('mult-val');
+    const stateEl = $('mult-state');
+    multEl.classList.remove('flying', 'crashed', 'cashed');
+
+    if (game.state === STATE.WAITING) {
+      multEl.textContent = '1.00x';
+      stateEl.textContent = 'WAITING FOR ROUND';
+    } else if (game.state === STATE.COUNTDOWN) {
+      multEl.textContent = Math.ceil(game.countdownT) + 's';
+      stateEl.textContent = 'NEXT ROUND IN';
+    } else if (game.state === STATE.FLYING) {
+      multEl.textContent = game.currentMult.toFixed(2) + 'x';
+      multEl.classList.add('flying');
+      stateEl.textContent = '🚀 FLYING';
+    } else if (game.state === STATE.CRASHED) {
+      multEl.textContent = game.crashPoint.toFixed(2) + 'x';
+      multEl.classList.add('crashed');
+      stateEl.textContent = '💥 RUG PULL';
+    } else if (game.state === STATE.CASHED) {
+      multEl.textContent = game.cashedAt.toFixed(2) + 'x';
+      multEl.classList.add('cashed');
+      stateEl.textContent = '💎 HODL WIN';
+    }
+
+    // Action button
+    const actionBtn = $('action-btn');
+    if (game.balance < 1) {
+      // Fix #1: Faucet limited to N claims. After that, button becomes a SESSION RESET.
+      const claims = save.faucetClaims || 0;
+      const FAUCET_MAX = 3;
+      if (claims < FAUCET_MAX) {
+        const remaining = FAUCET_MAX - claims;
+        actionBtn.textContent = `⛏ CLAIM FAUCET (+1000) — ${remaining} left`;
+      } else {
+        actionBtn.textContent = '🔄 RESET SESSION';
+      }
+      actionBtn.classList.remove('hodl');
+      actionBtn.disabled = false;
+    } else if (game.state === STATE.WAITING || game.state === STATE.COUNTDOWN) {
+      actionBtn.textContent = game.state === STATE.WAITING ? '▶ BUY' : `BUY (${Math.ceil(game.countdownT)}s)`;
+      actionBtn.classList.remove('hodl');
+      actionBtn.disabled = game.balance < game.bet;
+    } else if (game.state === STATE.FLYING) {
+      if (game.hasBet) {
+        actionBtn.textContent = '💎 HODL';
+        actionBtn.classList.add('hodl');
+        actionBtn.disabled = false;
+      } else {
+        actionBtn.textContent = 'NO BET';
+        actionBtn.disabled = true;
+      }
+    } else if (game.state === STATE.CRASHED || game.state === STATE.CASHED) {
+      actionBtn.textContent = `WAIT ${Math.ceil(game.countdownT)}s`;
+      actionBtn.disabled = true;
+    }
+  }
+
+  // ============================================================
+  // CANVAS DRAWING
+  // ============================================================
+  function drawChart() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid lines for key multipliers
+    const padding = { l: 50, r: 20, t: 20, b: 30 };
+    const plotW = W - padding.l - padding.r;
+    const plotH = H - padding.t - padding.b;
+
+    // Y-axis: 1.00 to (crashPoint * 1.2 or 10)
+    const maxM = Math.max(5, game.crashPoint * 1.2);
+    const yToScreen = (m) => padding.t + plotH * (1 - (m - 1) / (maxM - 1));
+    const xToScreen = (t) => padding.l + (t / Math.max(timeForMultiplier(maxM), 0.1)) * plotW;
+
+    // Background grid
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.lineWidth = 1;
+    const gridLines = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0];
+    gridLines.forEach(m => {
+      if (m > maxM) return;
+      const y = yToScreen(m);
+      ctx.beginPath();
+      ctx.moveTo(padding.l, y);
+      ctx.lineTo(W - padding.r, y);
+      ctx.stroke();
+      // Label
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.font = '10px Inter, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(m.toFixed(m < 2 ? 2 : 1) + 'x', padding.l - 6, y + 3);
+    });
+
+    // X-axis time labels
+    const tMax = timeForMultiplier(maxM);
+    const tSteps = 5;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.font = '10px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    for (let i = 0; i <= tSteps; i++) {
+      const t = (tMax * i) / tSteps;
+      const x = xToScreen(t);
+      ctx.fillText(t.toFixed(1) + 's', x, H - padding.b + 14);
+    }
+
+    // Block hash at top
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.font = '10px ui-monospace, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`#${game.blockNum}  ${game.blockHash.slice(0, 22)}…`, padding.l, padding.t - 6);
+
+    // Curve
+    if (game.state === STATE.FLYING || game.state === STATE.CRASHED || game.state === STATE.CASHED) {
+      const grad = ctx.createLinearGradient(0, padding.t, 0, padding.t + plotH);
+      if (game.state === STATE.CRASHED) {
+        grad.addColorStop(0, 'rgba(255, 71, 87, 0.6)');
+        grad.addColorStop(1, 'rgba(255, 71, 87, 0)');
+      } else if (game.state === STATE.CASHED) {
+        grad.addColorStop(0, 'rgba(244, 180, 0, 0.6)');
+        grad.addColorStop(1, 'rgba(244, 180, 0, 0)');
+      } else {
+        grad.addColorStop(0, 'rgba(16, 217, 160, 0.6)');
+        grad.addColorStop(1, 'rgba(16, 217, 160, 0)');
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(padding.l, yToScreen(1));
+      const tEnd = game.state === STATE.FLYING ? game.elapsed : timeForMultiplier(game.state === STATE.CASHED ? game.cashedAt : game.crashPoint);
+      for (let t = 0; t <= tEnd; t += 0.1) {
+        const m = multiplierAt(t);
+        ctx.lineTo(xToScreen(t), yToScreen(m));
+      }
+      ctx.strokeStyle = game.state === STATE.CRASHED ? '#ff4757' : game.state === STATE.CASHED ? '#f4b400' : '#10d9a0';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Fill below
+      ctx.lineTo(xToScreen(tEnd), yToScreen(1));
+      ctx.lineTo(padding.l, yToScreen(1));
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // JAY coin at current position
+      if (game.state === STATE.FLYING) {
+        const m = game.currentMult;
+        const x = xToScreen(game.elapsed);
+        const y = yToScreen(m);
+        drawJayCoin(x, y, 1);
+      } else if (game.state === STATE.CRASHED) {
+        // Explosion at crash point
+        const x = xToScreen(tEnd);
+        const y = yToScreen(game.crashPoint);
+        drawExplosion(x, y);
+      } else if (game.state === STATE.CASHED) {
+        // Gold coin at cashout
+        const x = xToScreen(timeForMultiplier(game.cashedAt));
+        const y = yToScreen(game.cashedAt);
+        drawJayCoin(x, y, 1.3);
+      }
+    }
+
+    // Auto cashout line
+    if (game.autoCashout > 1 && game.autoCashout < maxM) {
+      ctx.strokeStyle = 'rgba(157, 92, 255, 0.5)';
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1;
+      const y = yToScreen(game.autoCashout);
+      ctx.beginPath();
+      ctx.moveTo(padding.l, y);
+      ctx.lineTo(W - padding.r, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Label
+      ctx.fillStyle = 'rgba(157, 92, 255, 0.9)';
+      ctx.font = 'bold 10px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('AUTO ' + game.autoCashout.toFixed(2) + 'x', W - padding.r - 60, y - 4);
+    }
+  }
+
+  function drawJayCoin(x, y, scale = 1) {
+    const r = 16 * scale;
+    // Outer glow
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r * 2.2);
+    grad.addColorStop(0, 'rgba(244, 180, 0, 0.5)');
+    grad.addColorStop(1, 'rgba(244, 180, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    // Coin body
+    const body = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+    body.addColorStop(0, '#ffd54a');
+    body.addColorStop(0.7, '#f4b400');
+    body.addColorStop(1, '#a87a00');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    // "J" letter
+    ctx.fillStyle = '#5a3f00';
+    ctx.font = `bold ${Math.floor(r * 1.1)}px Inter, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('J', x, y + 1);
+  }
+
+  function drawExplosion(x, y) {
+    const particles = 16;
+    const time = (Date.now() % 1000) / 1000; // 0-1
+    for (let i = 0; i < particles; i++) {
+      const angle = (i / particles) * Math.PI * 2;
+      const dist = 30 + time * 60;
+      const px = x + Math.cos(angle) * dist;
+      const py = y + Math.sin(angle) * dist;
+      const size = 4 * (1 - time);
+      ctx.fillStyle = `rgba(255, ${100 + Math.floor(time * 100)}, 50, ${1 - time})`;
+      ctx.beginPath();
+      ctx.arc(px, py, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ============================================================
+  // GAME LOOP
+  // ============================================================
+  let lastT = performance.now();
+  // Fix #5: pause game when tab is hidden so we don't "skip ahead" unfairly
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      // Reset lastT so dt doesn't include the time the tab was hidden
+      lastT = performance.now();
+    }
+  });
+  function loop(now) {
+    // Fix #5: if tab was hidden, dt is artificially capped to 0.05s above
+    // (RAF also pauses when hidden so this is mostly belt-and-suspenders)
+    const dt = Math.min((now - lastT) / 1000, 0.05);
+    lastT = now;
+    update(dt);
+    render();
+    drawChart();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt) {
+    if (game.state === STATE.COUNTDOWN) {
+      game.countdownT -= dt;
+      if (game.countdownT <= 0) {
+        startRound();
+      }
+    } else if (game.state === STATE.FLYING) {
+      game.elapsed += dt;
+      game.currentMult = multiplierAt(game.elapsed);
+      // Check crash
+      if (game.currentMult >= game.crashPoint) {
+        crash();
+      }
+      // Check auto cashout
+      if (game.hasBet && game.autoCashout > 1 && game.currentMult >= game.autoCashout) {
+        cashOut();
+      }
+    } else if (game.state === STATE.CRASHED || game.state === STATE.CASHED) {
+      game.countdownT -= dt;
+      if (game.countdownT <= 0) {
+        nextRound();
+      }
+    }
+  }
+
+  // ============================================================
+  // ROUND FLOW
+  // ============================================================
+  function startRound() {
+    game.state = STATE.FLYING;
+    game.elapsed = 0;
+    game.currentMult = 1.0;
+    // Note: hasBet is preserved from countdown phase if user placed bet then
+    sfx.tick();
+  }
+
+  function placeBet() {
+    if (game.balance < game.bet) {
+      showToast('INSUFFICIENT BALANCE', 'loss');
+      return;
+    }
+    game.balance -= game.bet;
+    game.hasBet = true;
+    sfx.buy();
+    showToast(`BET: ${game.bet} SCORE`, 'gold');
+    persistNow(); // Fix #2: persist immediately so tab-close doesn't lose the bet
+    render();
+  }
+
+  function cashOut() {
+    if (!game.hasBet) return;
+    const winAmount = Math.floor(game.bet * game.currentMult);
+    const profit = winAmount - game.bet;
+    game.balance += winAmount;
+    game.profit += profit;
+    game.sessionProfit = (game.sessionProfit || 0) + profit;
+    game.streak += 1;
+    game.sessionStreak += 1;
+    if (game.streak > game.maxStreak) game.maxStreak = game.streak;
+    game.cashedAt = game.currentMult;
+    game.state = STATE.CASHED;
+    game.countdownT = COUNTDOWN_SEC;
+    save.totalWins = (save.totalWins || 0) + 1;
+    save.totalRounds = (save.totalRounds || 0) + 1;
+    updateBestStats();
+    sfx.cash();
+    addFeedItem(true, game.currentMult);
+    showToast(`+${winAmount} SCORE @ ${game.currentMult.toFixed(2)}x`, 'gold');
+    render();
+  }
+
+  function crash() {
+    game.state = STATE.CRASHED;
+    game.currentMult = game.crashPoint;
+    game.countdownT = COUNTDOWN_SEC;
+    if (game.hasBet) {
+      game.profit -= game.bet;
+      game.sessionProfit = (game.sessionProfit || 0) - game.bet;
+      game.streak = 0;
+      game.sessionStreak = 0; // Fix #6: session streak resets on loss
+      sfx.lose();
+      showToast(`RUGGED @ ${game.crashPoint.toFixed(2)}x — LOST ${game.bet} SCORE`, 'loss');
+      addFeedItem(false, game.crashPoint);
+    } else {
+      sfx.crash();
+      showToast(`CRASH @ ${game.crashPoint.toFixed(2)}x`, '');
+    }
+    save.totalRounds = (save.totalRounds || 0) + 1;
+    updateBestStats();
+    render();
+  }
+
+  function nextRound() {
+    sfx.next();
+    generateBlock();
+    game.state = STATE.COUNTDOWN;
+    game.countdownT = 3;
+    game.hasBet = false; // Reset for fresh round
+    render();
+  }
+
+  // ============================================================
+  // ATMOSPHERE FEED
+  // ============================================================
+  let feedItems = [];
+  function addFeedItem(win, mult) {
+    const tmpl = FEED_TEMPLATES[Math.floor(Math.random() * FEED_TEMPLATES.length)];
+    const item = document.createElement('div');
+    item.className = 'feed-item ' + (win ? 'win' : 'loss');
+    const icon = win ? '✓' : '✗';
+    item.innerHTML = `<span class="name">${tmpl.name}</span><span class="mult">${icon} ${mult.toFixed(2)}x</span>`;
+    const body = $('feed-body');
+    body.insertBefore(item, body.firstChild);
+    feedItems.push(item);
+    // Limit to 50
+    while (feedItems.length > 50) {
+      const old = feedItems.shift();
+      old.remove();
+    }
+  }
+  function seedFeed() {
+    // Pre-populate with 12 fake items
+    for (let i = 0; i < 12; i++) {
+      const tmpl = FEED_TEMPLATES[Math.floor(Math.random() * FEED_TEMPLATES.length)];
+      const win = Math.random() < 0.5;
+      const m = win ? (1.5 + Math.random() * 8).toFixed(2) : (1.01 + Math.random() * 0.5).toFixed(2);
+      const item = document.createElement('div');
+      item.className = 'feed-item ' + (win ? 'win' : 'loss');
+      const icon = win ? '✓' : '✗';
+      item.innerHTML = `<span class="name">${tmpl.name}</span><span class="mult">${icon} ${m}x</span>`;
+      $('feed-body').appendChild(item);
+      feedItems.push(item);
+    }
+  }
+
+  // ============================================================
+  // TICKER
+  // ============================================================
+  let tickerPrice = 0.0024;
+  let tickerChange = 0;
+  function tickTicker() {
+    setInterval(() => {
+      const drift = (Math.random() - 0.5) * 0.00015;
+      tickerPrice = Math.max(0.0001, tickerPrice + drift);
+      const changePct = ((tickerPrice - 0.0024) / 0.0024) * 100;
+      $('ticker-price').textContent = '$' + tickerPrice.toFixed(6);
+      $('ticker-change').textContent = (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%';
+      $('ticker-change').className = 'ticker-change ' + (changePct >= 0 ? 'up' : 'down');
+    }, 2000);
+  }
+
+  // ============================================================
+  // TOAST
+  // ============================================================
+  let toastTimeout = null;
+  function showToast(msg, type = '') {
+    const t = $('toast');
+    t.textContent = msg;
+    t.className = 'show ' + type;
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { t.className = ''; }, 2500);
+  }
+
+  // ============================================================
+  // CONFETTI
+  // ============================================================
+  function confetti() {
+    const colors = ['#10d9a0', '#f4b400', '#9d5cff', '#ff4757', '#ffffff'];
+    for (let i = 0; i < 50; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti';
+      piece.style.cssText = `
+        left: ${50 + (Math.random() - 0.5) * 60}%;
+        top: 30%;
+        width: ${6 + Math.random() * 6}px;
+        height: ${6 + Math.random() * 6}px;
+        background: ${colors[Math.floor(Math.random() * colors.length)]};
+        transform: rotate(${Math.random() * 360}deg);
+      `;
+      document.body.appendChild(piece);
+      const dx = (Math.random() - 0.5) * 400;
+      const dy = 200 + Math.random() * 400;
+      const rot = Math.random() * 720;
+      piece.animate([
+        { transform: `translate(0, 0) rotate(0)`, opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg)`, opacity: 0 }
+      ], { duration: 1500 + Math.random() * 1000, easing: 'cubic-bezier(0.2, 0.8, 0.4, 1)' });
+      setTimeout(() => piece.remove(), 2500);
+    }
+  }
+
+  // ============================================================
+  // EVENT WIRING
+  // ============================================================
+  function setBet(n) {
+    n = Math.max(BET_MIN, Math.min(BET_MAX, n));
+    game.bet = n;
+    $('bet-amount').textContent = n;
+    document.querySelectorAll('.quick-bet').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.bet) === n || (b.dataset.bet === '100' && n === game.balance));
+    });
+  }
+
+  $('bet-down').addEventListener('click', () => { ensureAudio(); setBet(game.bet - BET_STEP); });
+  $('bet-up').addEventListener('click', () => { ensureAudio(); setBet(game.bet + BET_STEP); });
+  document.querySelectorAll('.quick-bet').forEach(b => {
+    b.addEventListener('click', () => {
+      ensureAudio();
+      const v = parseInt(b.dataset.bet);
+      setBet(v === 100 ? game.balance : v);
+    });
+  });
+  $('auto-cashout').addEventListener('change', (e) => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v) && v >= 1.01) {
+      game.autoCashout = v;
+    }
+  });
+
+  $('action-btn').addEventListener('click', () => {
+    ensureAudio();
+    if (game.balance < 1) {
+      // Fix #1: Faucet limited + reset fallback
+      const FAUCET_MAX = 3;
+      const claims = save.faucetClaims || 0;
+      if (claims < FAUCET_MAX) {
+        game.balance = 1000;
+        save.faucetClaims = claims + 1;
+        showToast(`⛏ +1000 SCORE from faucet (${FAUCET_MAX - claims - 1} left)`, 'gold');
+        sfx.cash();
+      } else {
+        // Out of faucet claims — reset entire session
+        game.balance = 1000;
+        game.profit = 0;
+        game.streak = 0;
+        game.sessionStreak = 0;
+        game.sessionProfit = 0;
+        save.faucetClaims = 0;
+        save.totalRounds = 0;
+        save.totalWins = 0;
+        save.bestSessionStreak = 0;
+        save.bestSessionProfit = 0;
+        showToast('🔄 Session reset — back to 1000 SCORE (1 JAY)', 'gold');
+        sfx.next();
+      }
+      updateBestStats();
+      render();
+    } else if (game.state === STATE.WAITING || game.state === STATE.COUNTDOWN) {
+      placeBet();
+    } else if (game.state === STATE.FLYING) {
+      cashOut();
+    }
+  });
+
+  $('btn-start').addEventListener('click', () => {
+    ensureAudio();
+    $('overlay-menu').classList.remove('show');
+    // Start the round flow
+    if (game.state === STATE.WAITING) {
+      nextRound();
+    }
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    ensureAudio();
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      if (game.state === STATE.WAITING || game.state === STATE.COUNTDOWN) placeBet();
+      else if (game.state === STATE.FLYING) cashOut();
+    } else if (e.key === 'b' || e.key === 'B') {
+      if (game.state === STATE.WAITING || game.state === STATE.COUNTDOWN) placeBet();
+    } else if (e.key === 'h' || e.key === 'H') {
+      if (game.state === STATE.FLYING) cashOut();
+    }
+  });
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  loadSave();
+  resize();
+  generateBlock();
+  game.state = STATE.WAITING;
+  seedFeed();
+  tickTicker();
+  setBet(game.bet);
+  game.autoCashout = parseFloat($('auto-cashout').value) || 2.0;
+  render();
+  requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
