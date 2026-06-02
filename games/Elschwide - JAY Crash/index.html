@@ -397,7 +397,7 @@
   const STATE = { WAITING: 0, COUNTDOWN: 1, FLYING: 2, CRASHED: 3, CASHED: 4 };
   let game = {
     state: STATE.WAITING,
-    balance: 100,
+    balance: 1000,
     profit: 0,
     streak: 0,
     maxStreak: 0,
@@ -414,7 +414,7 @@
     curve: [], // array of {t, m} for history
     sessionProfit: 0,
   };
-  let save = { balance: 100, bestProfit: 0, maxStreak: 0, totalRounds: 0, totalWins: 0, faucetClaims: 0 };
+  let save = { balance: 1000, bestProfit: 0, maxStreak: 0, totalRounds: 0, totalWins: 0, faucetClaims: 0 };
 
   // ============================================================
   // SAVE / LOAD
@@ -426,12 +426,10 @@
         const parsed = JSON.parse(raw);
         Object.assign(save, parsed);
         if (typeof parsed.balance === 'number' && parsed.balance >= 0) {
-          // Fix #7: if user reloads with balance=0, give them a fresh 100
-          // (This is a demo game; nobody should be stuck)
-          game.balance = parsed.balance < 1 ? 100 : parsed.balance;
-          if (parsed.balance < 1) {
-            save.balance = 100;
-            // Reset faucet claim count too since we're giving free money
+          // Auto-reload to 1000 score when balance falls below 100
+          game.balance = parsed.balance < 100 ? 1000 : parsed.balance;
+          if (parsed.balance < 100) {
+            save.balance = 1000;
             save.faucetClaims = 0;
           }
         }
@@ -848,6 +846,12 @@
       return;
     }
     game.balance -= game.bet;
+    // Auto-reload to 1000 when balance drops below 100
+    if (game.balance < 100) {
+      game.balance = 1000;
+      save.faucetClaims = 0;
+      showToast('♻ BALANCE RELOADED TO 1000', 'gold');
+    }
     game.hasBet = true;
     sfx.buy();
     showToast(`BET: ${game.bet} SCORE`, 'gold');
@@ -885,7 +889,13 @@
       game.profit -= game.bet;
       game.sessionProfit = (game.sessionProfit || 0) - game.bet;
       game.streak = 0;
-      game.sessionStreak = 0; // Fix #6: session streak resets on loss
+      game.sessionStreak = 0;
+      // Auto-reload to 1000 when balance falls below 100
+      if (game.balance < 100) {
+        game.balance = 1000;
+        save.faucetClaims = 0;
+        showToast('♻ BALANCE RELOADED TO 1000', 'gold');
+      }
       sfx.lose();
       showToast(`RUGGED @ ${game.crashPoint.toFixed(2)}x — LOST ${game.bet} SCORE`, 'loss');
       addFeedItem(false, game.crashPoint);
