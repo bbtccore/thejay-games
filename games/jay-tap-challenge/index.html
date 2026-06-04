@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JAY Tap Challenge — Play & Earn</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1a2e 100%);
+  min-height: 100vh;
+  color: #fff;
+  overflow-x: hidden;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.logo { font-size: 24px; font-weight: 800; }
+.logo span { color: #00d4ff; }
+.wallet-btn {
+  background: linear-gradient(135deg, #00d4ff, #0088ff);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+.wallet-btn:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(0,212,255,0.4); }
+.wallet-btn.connected { background: linear-gradient(135deg, #00ff88, #00cc66); }
+
+/* Main */
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+/* Balance Card */
+.balance-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.balance-label { font-size: 14px; color: #888; margin-bottom: 8px; }
+.balance-amount { font-size: 42px; font-weight: 800; color: #00d4ff; }
+.balance-usd { font-size: 14px; color: #666; margin-top: 4px; }
+
+/* Game Area */
+.game-area {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 32px 24px;
+  margin-bottom: 24px;
+}
+.game-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.game-subtitle { font-size: 14px; color: #888; margin-bottom: 24px; }
+
+/* Timer */
+.timer {
+  font-size: 56px;
+  font-weight: 800;
+  color: #00d4ff;
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.timer.warning { color: #ffaa00; }
+.timer.danger { color: #ff4444; }
+
+/* Score */
+.score-display {
+  font-size: 18px;
+  color: #aaa;
+  margin-bottom: 24px;
+}
+.score-display span { color: #fff; font-weight: 700; font-size: 24px; }
+
+/* Tap Button */
+.tap-btn {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 4px solid rgba(0,212,255,0.3);
+  background: radial-gradient(circle at 30% 30%, #1a3a4a, #0a1a2a);
+  color: #00d4ff;
+  font-size: 24px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.tap-btn::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0,212,255,0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.tap-btn:active {
+  transform: scale(0.95);
+  border-color: #00d4ff;
+  box-shadow: 0 0 40px rgba(0,212,255,0.5);
+}
+.tap-btn:active::before { opacity: 1; }
+.tap-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Start Button */
+.start-btn {
+  background: linear-gradient(135deg, #00d4ff, #0088ff);
+  border: none;
+  padding: 16px 48px;
+  border-radius: 16px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 16px;
+}
+.start-btn:hover { transform: scale(1.05); box-shadow: 0 4px 30px rgba(0,212,255,0.4); }
+
+/* Result */
+.result {
+  display: none;
+  margin-top: 24px;
+}
+.result.show { display: block; }
+.result-title { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+.result-score { font-size: 48px; font-weight: 800; color: #00d4ff; }
+.result-reward { font-size: 16px; color: #00ff88; margin-top: 8px; }
+.result-cta { margin-top: 16px; }
+
+/* Floating +1 */
+.float-text {
+  position: fixed;
+  font-size: 24px;
+  font-weight: 800;
+  color: #00d4ff;
+  pointer-events: none;
+  animation: floatUp 0.8s ease-out forwards;
+  z-index: 100;
+}
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+}
+
+/* Stats */
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 16px;
+}
+.stat-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+.stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+
+/* Leaderboard */
+.leaderboard {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.lb-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.lb-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-rank { font-size: 16px; font-weight: 700; width: 30px; }
+.lb-name { flex: 1; text-align: left; margin-left: 12px; }
+.lb-score { font-weight: 700; color: #00d4ff; }
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 24px;
+  color: #444;
+  font-size: 12px;
+}
+
+/* Particles */
+.particle {
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  background: #00d4ff;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particleFade 1s ease-out forwards;
+}
+@keyframes particleFade {
+  0% { opacity: 1; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">JAY <span>Games</span></div>
+  <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">Connect Wallet</button>
+</div>
+
+<div class="container">
+  <!-- Balance -->
+  <div class="balance-card">
+    <div class="balance-label">Your JAY Balance</div>
+    <div class="balance-amount" id="balance">0.00</div>
+    <div class="balance-usd" id="balanceAddr">Connect wallet to play</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Games Played</div>
+      <div class="stat-value" id="gamesPlayed">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Best Score</div>
+      <div class="stat-value" id="bestScore">0</div>
+    </div>
+  </div>
+
+  <!-- Game -->
+  <div class="game-area">
+    <div class="game-title">⚡ Tap Challenge</div>
+    <div class="game-subtitle">Tap as fast as you can in 30 seconds!</div>
+    
+    <div class="timer" id="timer">30</div>
+    <div class="score-display">Taps: <span id="score">0</span></div>
+    
+    <button class="tap-btn" id="tapBtn" ontouchstart="handleTap(event)" onmousedown="handleTap(event)" disabled>
+      TAP
+    </button>
+    
+    <br>
+    <button class="start-btn" id="startBtn" onclick="startGame()">Start Game</button>
+
+    <div class="result" id="result">
+      <div class="result-title">🎉 Time's Up!</div>
+      <div class="result-score" id="finalScore">0</div>
+      <div class="result-reward" id="rewardText">You earned 0 JAY!</div>
+      <div class="result-cta">
+        <button class="start-btn" onclick="startGame()">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="leaderboard">
+    <div class="lb-title">🏆 Top Players</div>
+    <div class="lb-row">
+      <div class="lb-rank">🥇</div>
+      <div class="lb-name">jay_whale</div>
+      <div class="lb-score">247</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank">🥈</div>
+      <div class="lb-name">tap_master</div>
+      <div class="lb-score">231</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank">🥉</div>
+      <div class="lb-name">cosmos_king</div>
+      <div class="lb-score">218</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank">4</div>
+      <div class="lb-name">node_runner</div>
+      <div class="lb-score">195</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank">5</div>
+      <div class="lb-name">degen_tapper</div>
+      <div class="lb-score">182</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Powered by The Jay Network • games.thejaynetwork.com
+</div>
+
+<script>
+// Config
+const JAY_RPC = 'http://152.53.195.5:1317';
+const API_BASE = window.location.origin + '/api'; // Backend API
+const CHAIN_ID = 'thejaynetwork';
+const DENOM = 'ujay';
+const DECIMALS = 6;
+
+// State
+let walletAddress = null;
+let gameActive = false;
+let tapCount = 0;
+let timeLeft = 30;
+let gameTimer = null;
+let gamesPlayed = parseInt(localStorage.getItem('jay_games') || '0');
+let bestScore = parseInt(localStorage.getItem('jay_best') || '0');
+let gameStartTime = null;
+
+// Init
+document.getElementById('gamesPlayed').textContent = gamesPlayed;
+document.getElementById('bestScore').textContent = bestScore;
+
+// Wallet Connection
+async function connectWallet() {
+  if (walletAddress) return;
+  
+  // Try Keplr
+  if (window.keplr) {
+    try {
+      await window.keplr.enable(CHAIN_ID);
+      const key = await window.keplr.getKey(CHAIN_ID);
+      walletAddress = key.bech32Address;
+      updateWalletUI();
+      fetchBalance();
+    } catch (e) {
+      alert('Please approve the connection in Keplr wallet.');
+    }
+  } 
+  // Try Leap
+  else if (window.leap) {
+    try {
+      await window.leap.enable(CHAIN_ID);
+      const key = await window.leap.getKey(CHAIN_ID);
+      walletAddress = key.bech32Address;
+      updateWalletUI();
+      fetchBalance();
+    } catch (e) {
+      alert('Please approve the connection in Leap wallet.');
+    }
+  } 
+  else {
+    alert('Please install Keplr or Leap wallet extension to play!');
+  }
+}
+
+function updateWalletUI() {
+  const btn = document.getElementById('walletBtn');
+  if (walletAddress) {
+    const short = walletAddress.slice(0, 8) + '...' + walletAddress.slice(-6);
+    btn.textContent = short;
+    btn.classList.add('connected');
+    document.getElementById('balanceAddr').textContent = short;
+  }
+}
+
+async function fetchBalance() {
+  if (!walletAddress) return;
+  try {
+    const resp = await fetch(`${JAY_RPC}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+    const data = await resp.json();
+    const jayBalance = data.balances.find(b => b.denom === DENOM);
+    if (jayBalance) {
+      const amount = parseInt(jayBalance.amount) / Math.pow(10, DECIMALS);
+      document.getElementById('balance').textContent = amount.toLocaleString('en', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+  } catch (e) {
+    console.error('Balance fetch error:', e);
+  }
+}
+
+// Game Logic
+function startGame() {
+  if (!walletAddress) {
+    alert('Connect your wallet first!');
+    return;
+  }
+  
+  gameActive = true;
+  tapCount = 0;
+  timeLeft = 30;
+  gameStartTime = Date.now();
+  
+  document.getElementById('score').textContent = '0';
+  document.getElementById('timer').textContent = '30';
+  document.getElementById('timer').className = 'timer';
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('tapBtn').disabled = false;
+  
+  gameTimer = setInterval(() => {
+    timeLeft--;
+    const timerEl = document.getElementById('timer');
+    timerEl.textContent = timeLeft;
+    
+    if (timeLeft <= 5) timerEl.className = 'timer danger';
+    else if (timeLeft <= 10) timerEl.className = 'timer warning';
+    
+    if (timeLeft <= 0) {
+      endGame();
+    }
+  }, 1000);
+}
+
+function handleTap(e) {
+  e.preventDefault();
+  if (!gameActive) return;
+  
+  tapCount++;
+  document.getElementById('score').textContent = tapCount;
+  
+  // Floating +1 effect
+  const float = document.createElement('div');
+  float.className = 'float-text';
+  float.textContent = '+1';
+  float.style.left = (e.clientX || e.touches?.[0]?.clientX || 200) + 'px';
+  float.style.top = (e.clientY || e.touches?.[0]?.clientY || 300) + 'px';
+  document.body.appendChild(float);
+  setTimeout(() => float.remove(), 800);
+  
+  // Particles
+  for (let i = 0; i < 3; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = (e.clientX || 200) + 'px';
+    p.style.top = (e.clientY || 300) + 'px';
+    p.style.setProperty('--tx', (Math.random() - 0.5) * 100 + 'px');
+    p.style.setProperty('--ty', (Math.random() - 0.5) * 100 + 'px');
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1000);
+  }
+}
+
+function endGame() {
+  gameActive = false;
+  clearInterval(gameTimer);
+  
+  document.getElementById('tapBtn').disabled = true;
+  document.getElementById('startBtn').style.display = 'inline-block';
+  
+  const endTime = Date.now();
+  const duration = endTime - gameStartTime;
+  
+  // Update stats
+  gamesPlayed++;
+  if (tapCount > bestScore) bestScore = tapCount;
+  
+  localStorage.setItem('jay_games', gamesPlayed);
+  localStorage.setItem('jay_best', bestScore);
+  
+  document.getElementById('gamesPlayed').textContent = gamesPlayed;
+  document.getElementById('bestScore').textContent = bestScore;
+  
+  // Show result
+  document.getElementById('finalScore').textContent = tapCount + ' Taps';
+  document.getElementById('result').classList.add('show');
+  
+  // Submit to backend
+  submitToBackend(tapCount, duration);
+}
+
+async function submitToBackend(taps, duration) {
+  if (!walletAddress) return;
+  
+  try {
+    const resp = await fetch(`${API_BASE}/submit/tap`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wallet: walletAddress,
+        taps: taps,
+        duration: duration,
+        startTime: gameStartTime,
+        endTime: Date.now()
+      })
+    });
+    
+    const data = await resp.json();
+    
+    if (data.success) {
+      const reward = data.reward;
+      document.getElementById('rewardText').textContent = `You earned ${reward} JAY!`;
+      // Refresh balance
+      fetchBalance();
+    } else {
+      document.getElementById('rewardText').textContent = 'Score verified (no reward)';
+      console.warn('Backend error:', data.error, data.details);
+    }
+  } catch (e) {
+    // Fallback: calculate locally
+    const reward = (taps / 10).toFixed(2);
+    document.getElementById('rewardText').textContent = `You earned ~${reward} JAY!`;
+    console.warn('Backend offline, using local calculation');
+  }
+}
+
+// Prevent zoom on double tap
+document.addEventListener('touchstart', (e) => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+
+let lastTouch = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTouch <= 300) e.preventDefault();
+  lastTouch = now;
+}, { passive: false });
+</script>
+
+</body>
+</html>
