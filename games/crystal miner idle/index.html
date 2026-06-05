@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⛏️ Crystal Miner Idle - Neon Cyberpunk</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', 'Segoe UI', monospace, sans-serif;
+            background: #0a0e27;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.03) 2px, rgba(0, 255, 255, 0.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 0, 255, 0.03) 2px, rgba(255, 0, 255, 0.03) 4px),
+                linear-gradient(180deg, #0a0e27 0%, #1a1f3a 50%, #0a0e27 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 50%, rgba(255, 0, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .game-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(10, 14, 39, 0.8);
+            border: 2px solid;
+            border-image: linear-gradient(90deg, #00ffff, #ff00ff, #00ffff) 1;
+            border-radius: 0;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.3),
+                0 0 40px rgba(255, 0, 255, 0.2),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideDown 0.5s ease, neonPulse 2s ease-in-out infinite;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+            animation: scanline 3s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateX(-100%) translateY(-100%); }
+            100% { transform: translateX(100%) translateY(100%); }
+        }
+
+        @keyframes neonPulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), 0 0 40px rgba(255, 0, 255, 0.2), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(0, 255, 255, 0.5), 0 0 60px rgba(255, 0, 255, 0.3), inset 0 0 30px rgba(0, 255, 255, 0.2);
+            }
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #ff00ff, 2px 2px 4px rgba(0, 0, 0, 0.8);
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            animation: textGlow 2s ease-in-out infinite;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes textGlow {
+            0%, 100% {
+                text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #ff00ff, 2px 2px 4px rgba(0, 0, 0, 0.8);
+            }
+            50% {
+                text-shadow: 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #00ffff, 0 0 60px #ff00ff, 2px 2px 4px rgba(0, 0, 0, 0.8);
+            }
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 10px 20px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-item i {
+            color: #ff00ff;
+            filter: drop-shadow(0 0 5px #ff00ff);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            animation: fadeIn 0.5s ease 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Mining Area */
+        .mining-area {
+            background: rgba(10, 14, 39, 0.8);
+            border: 2px solid;
+            border-image: linear-gradient(135deg, #00ffff, #ff00ff) 1;
+            border-radius: 0;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2), inset 0 0 30px rgba(0, 255, 255, 0.05);
+            position: relative;
+            backdrop-filter: blur(10px);
+            clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+        }
+
+        .area-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .area-header h2 {
+            font-size: 2em;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        .area-level {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));
+            color: #ff00ff;
+            padding: 10px 20px;
+            border: 2px solid #ff00ff;
+            border-radius: 0;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ff00ff;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3), inset 0 0 10px rgba(255, 0, 255, 0.2);
+            clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+        }
+
+        .crystal-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .crystal-node {
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            text-align: center;
+        }
+
+        .crystal-node:hover {
+            transform: scale(1.05);
+        }
+
+        .crystal-node:active {
+            transform: scale(0.95);
+        }
+
+        .crystal-icon {
+            width: 150px;
+            height: 150px;
+            color: #00ffff;
+            filter: drop-shadow(0 0 20px #00ffff) drop-shadow(0 0 40px #00ffff) drop-shadow(0 0 60px #ff00ff);
+            animation: float 3s ease-in-out infinite, colorShift 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes colorShift {
+            0%, 100% {
+                filter: drop-shadow(0 0 20px #00ffff) drop-shadow(0 0 40px #00ffff) drop-shadow(0 0 60px #ff00ff);
+            }
+            50% {
+                filter: drop-shadow(0 0 20px #ff00ff) drop-shadow(0 0 40px #ff00ff) drop-shadow(0 0 60px #00ffff);
+            }
+        }
+
+        .crystal-hp-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 0;
+            margin: 20px auto 10px;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.2), 0 0 10px rgba(0, 255, 255, 0.3);
+            position: relative;
+        }
+
+        .crystal-hp-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        .crystal-hp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ff00ff, #00ffff);
+            background-size: 200% 100%;
+            border-radius: 0;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff, inset 0 0 10px rgba(255, 255, 255, 0.5);
+            animation: gradientFlow 2s linear infinite;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .crystal-hp-text {
+            font-weight: bold;
+            color: #00ffff;
+            font-size: 1.2em;
+            text-shadow: 0 0 10px #00ffff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .mine-button {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.5em;
+            font-weight: 900;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));
+            color: #00ffff;
+            border: 3px solid #00ffff;
+            border-radius: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4), 0 0 40px rgba(255, 0, 255, 0.2), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            text-shadow: 0 0 10px #00ffff;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mine-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.3), transparent);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .mine-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), 0 0 60px rgba(255, 0, 255, 0.4), inset 0 0 30px rgba(0, 255, 255, 0.2);
+            border-color: #ff00ff;
+            color: #ff00ff;
+        }
+
+        .mine-button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .mine-button:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Click Effects */
+        .click-effects {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .damage-number {
+            position: absolute;
+            font-size: 2em;
+            font-weight: bold;
+            color: #00ffff;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 2px 2px 4px rgba(0, 0, 0, 0.8);
+            font-family: 'Courier New', monospace;
+        }
+
+        .damage-number.crit {
+            font-size: 2.5em;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 30px #ff00ff, 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-100px); }
+        }
+
+        /* Upgrades Panel */
+        .upgrades-panel {
+            background: rgba(10, 14, 39, 0.8);
+            border: 2px solid;
+            border-image: linear-gradient(180deg, #ff00ff, #00ffff) 1;
+            border-radius: 0;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.2), inset 0 0 30px rgba(255, 0, 255, 0.05);
+            max-height: 800px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+        }
+
+        .upgrades-panel h3 {
+            font-size: 1.8em;
+            color: #ff00ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .upgrade-section {
+            margin-bottom: 30px;
+        }
+
+        .upgrade-section h4 {
+            font-size: 1.3em;
+            color: #00ffff;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px #00ffff;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .upgrade-card {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.05) 0%, rgba(255, 0, 255, 0.05) 100%);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 0;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+            position: relative;
+        }
+
+        .upgrade-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .upgrade-card:hover {
+            transform: translateX(5px);
+            border-color: #ff00ff;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.4), inset 0 0 10px rgba(255, 0, 255, 0.1);
+        }
+
+        .upgrade-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .upgrade-info {
+            flex: 1;
+        }
+
+        .upgrade-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #00ffff;
+            margin-bottom: 5px;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        .upgrade-desc {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .upgrade-level {
+            color: #ff00ff;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+
+        .upgrade-button {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            border-radius: 0;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            text-shadow: 0 0 5px #00ffff;
+            clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+        }
+
+        .upgrade-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            border-color: #ff00ff;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+
+        .upgrade-button:disabled {
+            background: rgba(50, 50, 50, 0.5);
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            text-shadow: none;
+        }
+
+        .area-unlock {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .area-card {
+            background: linear-gradient(135deg, rgba(255, 200, 0, 0.1) 0%, rgba(255, 150, 0, 0.1) 100%);
+            border-radius: 0;
+            padding: 15px;
+            border: 2px solid rgba(255, 200, 0, 0.5);
+            box-shadow: 0 0 15px rgba(255, 200, 0, 0.2);
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        .area-card.locked {
+            background: linear-gradient(135deg, rgba(100, 100, 100, 0.1) 0%, rgba(50, 50, 50, 0.1) 100%);
+            border-color: rgba(100, 100, 100, 0.5);
+            opacity: 0.5;
+            box-shadow: 0 0 10px rgba(100, 100, 100, 0.2);
+        }
+
+        .area-card.unlocked {
+            background: linear-gradient(135deg, rgba(0, 255, 100, 0.1) 0%, rgba(0, 200, 100, 0.1) 100%);
+            border-color: rgba(0, 255, 100, 0.5);
+            box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
+            animation: unlockPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes unlockPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 100, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(0, 255, 100, 0.5); }
+        }
+
+        .area-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .area-card-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .area-card.locked .area-card-name {
+            color: #666;
+            text-shadow: none;
+        }
+
+        .area-card.unlocked .area-card-name {
+            color: #00ff66;
+            text-shadow: 0 0 10px #00ff66;
+        }
+
+        .area-card-desc {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .area-card.locked .area-card-desc {
+            color: #555;
+        }
+
+        .area-card button {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            border-radius: 0;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 5px #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+        }
+
+        .area-card button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            border-color: #ff00ff;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+
+        .area-card button:disabled {
+            background: rgba(50, 50, 50, 0.5);
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            text-shadow: none;
+        }
+
+        /* Particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: radial-gradient(circle, #00ffff, #ff00ff);
+            border-radius: 50%;
+            animation: particleFloat 2s ease-out forwards;
+            box-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff;
+        }
+
+        @keyframes particleFloat {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+        }
+
+        /* Scrollbar */
+        .upgrades-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .upgrades-panel::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 0;
+        }
+
+        .upgrades-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #00ffff, #ff00ff);
+            border-radius: 0;
+            box-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff;
+        }
+
+        .upgrades-panel::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #ff00ff, #00ffff);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .stats {
+                gap: 15px;
+            }
+            
+            .stat-item {
+                font-size: 1.2em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .crystal-icon {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .mine-button {
+                font-size: 1.2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>⛏️ Crystal Miner Idle</h1>
+            <div class="stats">
+                <div class="stat-item">
+                    <i data-lucide="gem"></i>
+                    <span id="crystals">0</span>
+                </div>
+                <div class="stat-item">
+                    <i data-lucide="zap"></i>
+                    <span id="crystalsPerSecond">0</span>/s
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Game Area -->
+        <main class="main-content">
+            <!-- Mining Area -->
+            <section class="mining-area">
+                <div class="area-header">
+                    <h2 id="areaName">🏔️ Crystal Cave</h2>
+                    <div class="area-level">Level <span id="areaLevel">1</span></div>
+                </div>
+                
+                <div class="crystal-display" id="crystalDisplay">
+                    <div class="crystal-node" id="crystalNode">
+                        <i data-lucide="gem" class="crystal-icon"></i>
+                        <div class="crystal-hp-bar">
+                            <div class="crystal-hp-fill" id="crystalHpFill"></div>
+                        </div>
+                        <div class="crystal-hp-text" id="crystalHpText">100/100</div>
+                    </div>
+                </div>
+
+                <button class="mine-button" id="mineButton">
+                    <i data-lucide="pickaxe"></i>
+                    <span>MINE!</span>
+                </button>
+
+                <div class="click-effects" id="clickEffects"></div>
+            </section>
+
+            <!-- Upgrades Panel -->
+            <aside class="upgrades-panel">
+                <h3><i data-lucide="arrow-up-circle"></i> Upgrades</h3>
+                
+                <div class="upgrade-section">
+                    <h4>⛏️ Drill Power</h4>
+                    <div class="upgrade-card" id="drillUpgrade">
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Drill Upgrade</div>
+                            <div class="upgrade-desc">+<span id="drillPowerIncrease">1</span> damage per click</div>
+                            <div class="upgrade-level">Level: <span id="drillLevel">1</span></div>
+                        </div>
+                        <button class="upgrade-button" id="drillButton">
+                            <i data-lucide="gem"></i>
+                            <span id="drillCost">10</span>
+                        </button>
+                    </div>
+
+                    <div class="upgrade-card" id="autoMinerUpgrade">
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Auto Miner</div>
+                            <div class="upgrade-desc">+<span id="autoMinerIncrease">1</span> crystal/s</div>
+                            <div class="upgrade-level">Level: <span id="autoMinerLevel">0</span></div>
+                        </div>
+                        <button class="upgrade-button" id="autoMinerButton">
+                            <i data-lucide="gem"></i>
+                            <span id="autoMinerCost">50</span>
+                        </button>
+                    </div>
+
+                    <div class="upgrade-card" id="critUpgrade">
+                        <div class="upgrade-info">
+                            <div class="upgrade-name">Critical Strike</div>
+                            <div class="upgrade-desc">+<span id="critChanceIncrease">5</span>% crit chance</div>
+                            <div class="upgrade-level">Level: <span id="critLevel">0</span></div>
+                        </div>
+                        <button class="upgrade-button" id="critButton">
+                            <i data-lucide="gem"></i>
+                            <span id="critCost">100</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="upgrade-section">
+                    <h4>🗺️ New Areas</h4>
+                    <div class="area-unlock" id="areaUnlocks"></div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Particles Container -->
+        <div class="particles" id="particles"></div>
+    </div>
+
+    <script>
+        // Game State
+        const gameState = {
+            crystals: 0,
+            crystalsPerSecond: 0,
+            drillPower: 1,
+            drillLevel: 1,
+            drillCost: 10,
+            autoMinerLevel: 0,
+            autoMinerCost: 50,
+            autoMinerPower: 0,
+            critLevel: 0,
+            critCost: 100,
+            critChance: 0,
+            currentArea: 0,
+            crystalMaxHp: 100,
+            crystalCurrentHp: 100,
+            areas: [
+                { name: '🏔️ Crystal Cave', emoji: '💎', unlocked: true, cost: 0, multiplier: 1 },
+                { name: '❄️ Ice Cave', emoji: '🧊', unlocked: false, cost: 500, multiplier: 2 },
+                { name: '🌋 Lava Cave', emoji: '🔥', unlocked: false, cost: 2000, multiplier: 5 },
+                { name: '🌌 Void Cave', emoji: '🕳️', unlocked: false, cost: 10000, multiplier: 10 },
+                { name: '🌠 Cosmic Cave', emoji: '✨', unlocked: false, cost: 50000, multiplier: 20 }
+            ]
+        };
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // DOM Elements
+        const elements = {
+            crystals: document.getElementById('crystals'),
+            crystalsPerSecond: document.getElementById('crystalsPerSecond'),
+            areaName: document.getElementById('areaName'),
+            areaLevel: document.getElementById('areaLevel'),
+            crystalNode: document.getElementById('crystalNode'),
+            crystalHpFill: document.getElementById('crystalHpFill'),
+            crystalHpText: document.getElementById('crystalHpText'),
+            mineButton: document.getElementById('mineButton'),
+            clickEffects: document.getElementById('clickEffects'),
+            drillLevel: document.getElementById('drillLevel'),
+            drillCost: document.getElementById('drillCost'),
+            drillButton: document.getElementById('drillButton'),
+            drillPowerIncrease: document.getElementById('drillPowerIncrease'),
+            autoMinerLevel: document.getElementById('autoMinerLevel'),
+            autoMinerCost: document.getElementById('autoMinerCost'),
+            autoMinerButton: document.getElementById('autoMinerButton'),
+            autoMinerIncrease: document.getElementById('autoMinerIncrease'),
+            critLevel: document.getElementById('critLevel'),
+            critCost: document.getElementById('critCost'),
+            critButton: document.getElementById('critButton'),
+            critChanceIncrease: document.getElementById('critChanceIncrease'),
+            areaUnlocks: document.getElementById('areaUnlocks'),
+            particles: document.getElementById('particles')
+        };
+
+        // Update Display
+        function updateDisplay() {
+            elements.crystals.textContent = Math.floor(gameState.crystals).toLocaleString();
+            elements.crystalsPerSecond.textContent = gameState.crystalsPerSecond.toFixed(1);
+            elements.areaName.textContent = gameState.areas[gameState.currentArea].name;
+            elements.areaLevel.textContent = gameState.currentArea + 1;
+            
+            const hpPercent = (gameState.crystalCurrentHp / gameState.crystalMaxHp) * 100;
+            elements.crystalHpFill.style.width = hpPercent + '%';
+            elements.crystalHpText.textContent = `${Math.ceil(gameState.crystalCurrentHp)}/${gameState.crystalMaxHp}`;
+            
+            elements.drillLevel.textContent = gameState.drillLevel;
+            elements.drillCost.textContent = Math.floor(gameState.drillCost).toLocaleString();
+            elements.drillPowerIncrease.textContent = gameState.drillLevel;
+            elements.drillButton.disabled = gameState.crystals < gameState.drillCost;
+            
+            elements.autoMinerLevel.textContent = gameState.autoMinerLevel;
+            elements.autoMinerCost.textContent = Math.floor(gameState.autoMinerCost).toLocaleString();
+            elements.autoMinerIncrease.textContent = gameState.autoMinerLevel + 1;
+            elements.autoMinerButton.disabled = gameState.crystals < gameState.autoMinerCost;
+            
+            elements.critLevel.textContent = gameState.critLevel;
+            elements.critCost.textContent = Math.floor(gameState.critCost).toLocaleString();
+            elements.critChanceIncrease.textContent = 5;
+            elements.critButton.disabled = gameState.crystals < gameState.critCost;
+        }
+
+        // Mine Crystal
+        function mineCrystal(x, y) {
+            let damage = gameState.drillPower;
+            let isCrit = false;
+            
+            if (Math.random() * 100 < gameState.critChance) {
+                damage *= 2;
+                isCrit = true;
+            }
+            
+            gameState.crystalCurrentHp -= damage;
+            showDamageNumber(damage, x, y, isCrit);
+            createParticles(x, y);
+            
+            if (gameState.crystalCurrentHp <= 0) {
+                destroyCrystal();
+            }
+            
+            updateDisplay();
+        }
+
+        // Destroy Crystal
+        function destroyCrystal() {
+            const area = gameState.areas[gameState.currentArea];
+            const reward = (10 + gameState.currentArea * 5) * area.multiplier;
+            gameState.crystals += reward;
+            
+            gameState.crystalMaxHp = 100 + (gameState.currentArea * 50);
+            gameState.crystalCurrentHp = gameState.crystalMaxHp;
+            
+            elements.crystalNode.style.animation = 'none';
+            setTimeout(() => {
+                elements.crystalNode.style.animation = 'float 3s ease-in-out infinite';
+            }, 10);
+            
+            showRewardPopup(reward);
+        }
+
+        // Show Damage Number
+        function showDamageNumber(damage, x, y, isCrit) {
+            const damageEl = document.createElement('div');
+            damageEl.className = 'damage-number' + (isCrit ? ' crit' : '');
+            damageEl.textContent = isCrit ? `${damage}! CRIT!` : damage;
+            damageEl.style.left = x + 'px';
+            damageEl.style.top = y + 'px';
+            
+            elements.clickEffects.appendChild(damageEl);
+            
+            setTimeout(() => {
+                damageEl.remove();
+            }, 1000);
+        }
+
+        // Create Particles
+        function createParticles(x, y) {
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const tx = (Math.random() - 0.5) * 200;
+                const ty = (Math.random() - 0.5) * 200;
+                
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.setProperty('--tx', tx + 'px');
+                particle.style.setProperty('--ty', ty + 'px');
+                
+                elements.particles.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.remove();
+                }, 2000);
+            }
+        }
+
+        // Show Reward Popup
+        function showRewardPopup(reward) {
+            const popup = document.createElement('div');
+            popup.className = 'damage-number';
+            popup.textContent = `+${reward} 💎`;
+            popup.style.left = '50%';
+            popup.style.top = '40%';
+            popup.style.fontSize = '3em';
+            popup.style.color = '#ffd700';
+            
+            elements.clickEffects.appendChild(popup);
+            
+            setTimeout(() => {
+                popup.remove();
+            }, 1000);
+        }
+
+        // Upgrade Drill
+        function upgradeDrill() {
+            if (gameState.crystals >= gameState.drillCost) {
+                gameState.crystals -= gameState.drillCost;
+                gameState.drillLevel++;
+                gameState.drillPower = gameState.drillLevel;
+                gameState.drillCost = Math.floor(gameState.drillCost * 1.5);
+                updateDisplay();
+            }
+        }
+
+        // Upgrade Auto Miner
+        function upgradeAutoMiner() {
+            if (gameState.crystals >= gameState.autoMinerCost) {
+                gameState.crystals -= gameState.autoMinerCost;
+                gameState.autoMinerLevel++;
+                gameState.autoMinerPower = gameState.autoMinerLevel;
+                gameState.crystalsPerSecond = gameState.autoMinerPower;
+                gameState.autoMinerCost = Math.floor(gameState.autoMinerCost * 1.8);
+                updateDisplay();
+            }
+        }
+
+        // Upgrade Critical Strike
+        function upgradeCrit() {
+            if (gameState.crystals >= gameState.critCost) {
+                gameState.crystals -= gameState.critCost;
+                gameState.critLevel++;
+                gameState.critChance = gameState.critLevel * 5;
+                gameState.critCost = Math.floor(gameState.critCost * 2);
+                updateDisplay();
+            }
+        }
+
+        // Unlock Area
+        function unlockArea(index) {
+            const area = gameState.areas[index];
+            if (gameState.crystals >= area.cost && !area.unlocked) {
+                gameState.crystals -= area.cost;
+                area.unlocked = true;
+                gameState.currentArea = index;
+                gameState.crystalMaxHp = 100 + (index * 50);
+                gameState.crystalCurrentHp = gameState.crystalMaxHp;
+                renderAreaUnlocks();
+                updateDisplay();
+            }
+        }
+
+        // Switch Area
+        function switchArea(index) {
+            if (gameState.areas[index].unlocked) {
+                gameState.currentArea = index;
+                gameState.crystalMaxHp = 100 + (index * 50);
+                gameState.crystalCurrentHp = gameState.crystalMaxHp;
+                updateDisplay();
+            }
+        }
+
+        // Render Area Unlocks
+        function renderAreaUnlocks() {
+            elements.areaUnlocks.innerHTML = '';
+            
+            gameState.areas.forEach((area, index) => {
+                if (index === 0) return;
+                
+                const card = document.createElement('div');
+                card.className = 'area-card ' + (area.unlocked ? 'unlocked' : 'locked');
+                
+                card.innerHTML = `
+                    <div class="area-card-header">
+                        <div class="area-card-name">${area.name}</div>
+                    </div>
+                    <div class="area-card-desc">
+                        ${area.unlocked ? 'Unlocked! Click to switch' : `Unlock for ${area.cost.toLocaleString()} 💎`}
+                        <br>Multiplier: ${area.multiplier}x
+                    </div>
+                    <button onclick="${area.unlocked ? 'switchArea' : 'unlockArea'}(${index})" 
+                            ${!area.unlocked && gameState.crystals < area.cost ? 'disabled' : ''}>
+                        ${area.unlocked ? 'Switch Area' : 'Unlock'}
+                    </button>
+                `;
+                
+                elements.areaUnlocks.appendChild(card);
+            });
+            
+            lucide.createIcons();
+        }
+
+        // Auto Mining
+        function autoMine() {
+            if (gameState.autoMinerPower > 0) {
+                gameState.crystals += gameState.crystalsPerSecond / 10;
+                updateDisplay();
+            }
+        }
+
+        // Game Loop
+        function gameLoop() {
+            autoMine();
+        }
+
+        // Event Listeners
+        elements.crystalNode.addEventListener('click', (e) => {
+            const x = e.clientX;
+            const y = e.clientY;
+            mineCrystal(x, y);
+        });
+
+        elements.mineButton.addEventListener('click', (e) => {
+            const rect = elements.mineButton.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            mineCrystal(x, y);
+        });
+
+        elements.drillButton.addEventListener('click', upgradeDrill);
+        elements.autoMinerButton.addEventListener('click', upgradeAutoMiner);
+        elements.critButton.addEventListener('click', upgradeCrit);
+
+        // Save/Load Game
+        function saveGame() {
+            localStorage.setItem('crystalMinerSave', JSON.stringify(gameState));
+        }
+
+        function loadGame() {
+            const save = localStorage.getItem('crystalMinerSave');
+            if (save) {
+                const loaded = JSON.parse(save);
+                Object.assign(gameState, loaded);
+                renderAreaUnlocks();
+                updateDisplay();
+            }
+        }
+
+        // Initialize Game
+        renderAreaUnlocks();
+        updateDisplay();
+        setInterval(gameLoop, 100);
+        setInterval(saveGame, 5000);
+        loadGame();
+
+        console.log('⛏️ Crystal Miner Idle - Neon Cyberpunk Edition Started!');
+    </script>
+</body>
+</html>

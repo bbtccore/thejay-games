@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JAY Crypto Memory</title>
+    <style>
+        /* Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
+
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; user-select: none; 
+            -webkit-tap-highlight-color: transparent; /* Menghilangkan highlight biru saat tap di HP */
+        }
+        
+        /* Menghilangkan garis biru focus di PC */
+        button:focus, .card-container:focus, a:focus {
+            outline: none; 
+        }
+        
+        body { 
+            background: radial-gradient(circle at top, #1e1b4b, #0f172a); 
+            color: #ffffff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; 
+            padding: 20px; overflow-x: hidden; position: relative;
+        }
+
+        /* BACKGROUND DECORATION (FLOATING CRYPTO) */
+        .bg-decor { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; overflow: hidden; }
+        .bg-decor img { position: absolute; opacity: 0.15; filter: blur(3px); animation: float-bg infinite ease-in-out alternate; }
+        @keyframes float-bg { 
+            0% { transform: translateY(0) rotate(0deg); } 
+            100% { transform: translateY(-50px) rotate(20deg); } 
+        }
+
+        h1 { font-size: 2.5rem; font-weight: 800; text-align: center; margin-bottom: 5px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        h1 span { color: #8b5cf6; }
+
+        /* Buttons */
+        .btn { 
+            padding: 15px 40px; border: none; border-radius: 50px; background: linear-gradient(135deg, #7c3aed, #4f46e5); 
+            color: #fff; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease; 
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); border: 2px solid rgba(255,255,255,0.2);
+            outline: none;
+        }
+        .btn:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 8px 25px rgba(124, 58, 237, 0.6); }
+        .btn:active { transform: translateY(1px); }
+
+        /* Mute Button */
+        #audioToggle { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); transition: 0.3s; z-index: 10; outline: none;}
+        #audioToggle:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
+
+        /* Start Screen Card */
+        #start-screen { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; z-index: 5;
+        }
+        .start-card {
+            background: rgba(31, 41, 55, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1);
+            padding: 40px 50px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .start-desc { color: #cbd5e1; font-size: 1rem; margin-bottom: 25px; max-width: 300px; line-height: 1.5; }
+
+        /* HUD (Stats Bar) */
+        #hud { 
+            display: none; width: 100%; max-width: 650px; justify-content: space-between; align-items: center; 
+            background: rgba(31, 41, 55, 0.7); backdrop-filter: blur(10px); padding: 15px 25px; 
+            border-radius: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 5; margin-top: 10px;
+        }
+        .stat { display: flex; flex-direction: column; align-items: center; font-size: 0.85rem; color: #9ca3af; font-weight: 600;}
+        .stat span { font-size: 1.5rem; font-weight: 800; color: #fff; text-shadow: 1px 1px 0 rgba(0,0,0,0.5);}
+        .stat-timer { color: #ef4444 !important; transition: color 0.3s; }
+        .stat-score { color: #f59e0b !important; }
+
+        /* Game Area Container */
+        #game { 
+            display: grid; gap: 10px; justify-content: center; align-items: center; 
+            width: 100%; max-width: 800px; padding: 10px; perspective: 1000px; z-index: 5;
+        }
+
+        /* 3D FLIP CARD SYSTEM */
+        .card-container { width: 85px; height: 110px; cursor: pointer; perspective: 1000px; outline: none; }
+        .card { width: 100%; height: 100%; position: relative; transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; }
+        .card.flipped { transform: rotateY(180deg); }
+        
+        .card-face { 
+            position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; 
+            border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.15);
+        }
+
+        .card-cover { background: linear-gradient(135deg, #7c3aed, #4c1d95); transform: rotateY(0deg); }
+        .card-cover svg { width: 45px; height: 45px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+
+        .card-content { background: linear-gradient(135deg, #1e293b, #0f172a); transform: rotateY(180deg); }
+        .card-content .crypto-icon { width: 45px; height: 45px; margin-bottom: 5px; pointer-events: none; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5)); }
+        .card-content .label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; color: #cbd5e1; }
+
+        .card-container.matched .card-content { background: linear-gradient(135deg, #10b981, #047857) !important; border-color: #34d399 !important; }
+        .card-container.matched { pointer-events: none; }
+
+        /* Modals (Game Over & Level Complete) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 100; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; backdrop-filter: blur(5px); }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-content { background: linear-gradient(135deg, #1f2937, #111827); padding: 40px 50px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); text-align: center; transform: scale(0.7); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        .modal-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; }
+        .title-lose { color: #ef4444; }
+        .title-win { color: #10b981; }
+        .modal-text { font-size: 1.1rem; color: #cbd5e1; margin-bottom: 25px; }
+
+        /* Top Messages */
+        #msg { font-size: 1.3rem; margin: 5px 0 15px 0; font-weight: bold; min-height: 30px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); text-align: center; transition: color 0.3s; z-index: 5;}
+
+        /* Responsive HP */
+        @media (max-width: 480px) {
+            .card-container { width: 72px; height: 95px; }
+            .card-cover svg { width: 35px; height: 35px; }
+            .card-content .crypto-icon { width: 38px; height: 38px; margin-bottom: 3px;}
+            .card-content .label { font-size: 0.55rem; }
+            .start-card { padding: 30px 20px; }
+            h1 { font-size: 2rem; }
+            #hud { padding: 10px; border-radius: 12px; }
+            .stat span { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bgm" src="https://cdn.pixabay.com/audio/2021/08/09/audio_138b1e42a9.mp3" loop preload="auto"></audio>
+    <button id="audioToggle">🔊</button>
+
+    <div id="bg-decor" class="bg-decor"></div>
+
+    <div id="start-screen">
+        <div class="start-card">
+            <svg viewBox="0 0 100 100" width="120" height="120" style="margin-bottom: 15px; filter: drop-shadow(0 0 20px rgba(124, 58, 237, 0.6));">
+                <rect width="100" height="100" rx="25" fill="url(#mainGrad)"/>
+                <defs>
+                    <linearGradient id="mainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#8b5cf6"/>
+                        <stop offset="100%" stop-color="#4c1d95"/>
+                    </linearGradient>
+                </defs>
+                <text x="48" y="75" font-family="'Poppins', sans-serif" font-weight="800" font-style="italic" font-size="70" fill="#ffffff" text-anchor="middle">J</text>
+            </svg>
+            <h1><span>JAY</span> Crypto</h1>
+            <p class="start-desc">Match the cryptocurrency cards before the timer runs out. Don't lose all your lives!</p>
+            <button class="btn" id="startBtn">START GAME</button>
+        </div>
+    </div>
+
+    <div id="hud">
+        <div class="stat">LEVEL <span id="ui-level">1</span></div>
+        <div class="stat">TIME <span id="ui-timer" class="stat-timer">30s</span></div>
+        <div class="stat">LIVES <span id="ui-hp">❤️❤️❤️</span></div>
+        <div class="stat">SCORE <span id="ui-score" class="stat-score">0</span></div>
+    </div>
+
+    <div id="msg"></div>
+    <div id="game"></div>
+
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h2 id="modal-title" class="modal-title title-lose">GAME OVER</h2>
+            <p id="modal-desc" class="modal-text">Time's Up!</p>
+            <p style="font-size: 1.5rem; font-weight: bold; margin-bottom: 25px; color: #f59e0b;">Total Score: <span id="modal-score">0</span></p>
+            <button class="btn" id="modal-btn">Play Again</button>
+        </div>
+    </div>
+
+<script>
+// ==========================================
+// 1. PROCEDURAL AUDIO & BGM
+// ==========================================
+let ac;
+const bgm = document.getElementById("bgm");
+const audioToggle = document.getElementById("audioToggle");
+let isMuted = false;
+bgm.volume = 0.3; // Medium volume
+
+audioToggle.onclick = () => {
+    isMuted = !isMuted;
+    bgm.muted = isMuted;
+    audioToggle.textContent = isMuted ? "🔇" : "🔊";
+};
+
+function initAudio() {
+    if (!ac) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        ac = new AudioCtx();
+    }
+    if (ac.state === 'suspended') ac.resume();
+    if (bgm.paused && !isMuted) bgm.play().catch(e => console.log("BGM blocked by browser before interaction."));
+}
+
+function beep(f, d) {
+    if (!ac || isMuted) return;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.frequency.value = f; o.start();
+    g.gain.setValueAtTime(0.08, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d);
+    o.stop(ac.currentTime + d);
+}
+
+const snd = {
+    select: () => beep(500, .05),
+    open: () => beep(700, .05),
+    correct: () => { beep(900, .08); setTimeout(() => beep(1200, .08), 80); },
+    wrong: () => beep(180, .2),
+    win: () => { beep(500, .1); setTimeout(()=>beep(700, .1), 100); setTimeout(()=>beep(1000, .3), 200); },
+    lose: () => { beep(300, .2); setTimeout(()=>beep(200, .4), 250); }
+};
+
+// ==========================================
+// 2. CRYPTO DATA & WALLPAPER
+// ==========================================
+const svgLogo = `
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <text x="48" y="75" font-family="'Poppins', sans-serif" font-weight="800" font-style="italic" font-size="70" fill="#ffffff" text-anchor="middle">J</text>
+</svg>`;
+
+const cryptoCDN = "https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/";
+const pool = [
+    ["btc", "Bitcoin"], ["eth", "Ethereum"], ["bnb", "Binance"], ["usdt", "Tether"],
+    ["sol", "Solana"], ["xrp", "XRP"], ["ada", "Cardano"], ["doge", "Dogecoin"],
+    ["dot", "Polkadot"], ["matic", "Polygon"], ["ltc", "Litecoin"], ["link", "Chainlink"],
+    ["avax", "Avalanche"], ["shib", "Shiba Inu"], ["uni", "Uniswap"], ["atom", "Cosmos"]
+];
+
+let level = 1, hp = 3, score = 0, timer, time = 30;
+let first = null, second = null, lock = false, pairs = 0, found = 0;
+
+// Generate Floating Coin Wallpaper
+function generateBackground() {
+    const bg = document.getElementById("bg-decor");
+    for(let i=0; i<15; i++) {
+        let img = document.createElement("img");
+        let randomCoin = pool[Math.floor(Math.random() * pool.length)][0];
+        img.src = `${cryptoCDN}${randomCoin}.svg`;
+        img.style.left = `${Math.random() * 90}vw`;
+        img.style.top = `${Math.random() * 90}vh`;
+        img.style.width = `${Math.random() * 60 + 40}px`;
+        img.style.animationDuration = `${Math.random() * 10 + 10}s`;
+        img.style.animationDelay = `-${Math.random() * 5}s`;
+        bg.appendChild(img);
+    }
+}
+generateBackground();
+
+// ==========================================
+// 3. MAIN GAME LOGIC
+// ==========================================
+function shuffle(a) { 
+    for (let i = a.length - 1; i > 0; i--) { 
+        let j = Math.floor(Math.random() * (i + 1)); 
+        [a[i], a[j]] = [a[j], a[i]]; 
+    } 
+    return a; 
+}
+
+function drawHearts(h) { return '❤️'.repeat(Math.max(0, h)); }
+
+document.getElementById("startBtn").onclick = () => {
+    initAudio(); 
+    document.getElementById("start-screen").style.display = "none";
+    document.getElementById("hud").style.display = "flex";
+    startLevel();
+};
+
+document.getElementById("modal-btn").onclick = () => {
+    document.getElementById("modal-overlay").classList.remove("active");
+    if(hp <= 0 || time <= 0) {
+        // Reset full game
+        level = 1; hp = 3; score = 0;
+    }
+    startLevel();
+};
+
+function startLevel() {
+    found = 0; 
+    pairs = Math.min(level + 2, 16); 
+    
+    let deck = shuffle([...pool.slice(0, pairs), ...pool.slice(0, pairs)]);
+    let g = document.getElementById("game");
+    g.innerHTML = "";
+    
+    let cols = Math.ceil(Math.sqrt(deck.length));
+    if(window.innerWidth < 480) { cols = Math.min(cols, 4); }
+    
+    let cardWidth = window.innerWidth < 480 ? "75px" : "85px";
+    g.style.gridTemplateColumns = `repeat(${cols}, ${cardWidth})`;
+
+    deck.forEach((c) => {
+        let container = document.createElement("div");
+        container.className = "card-container";
+        container.dataset.name = c[1];
+        
+        container.innerHTML = `
+            <div class="card flipped">
+                <div class="card-face card-cover">${svgLogo}</div>
+                <div class="card-face card-content">
+                    <img class="crypto-icon" src="${cryptoCDN}${c[0]}.svg" alt="${c[1]}">
+                    <div class="label">${c[1]}</div>
+                </div>
+            </div>
+        `;
+        
+        container.onclick = flipCard;
+        g.appendChild(container);
+    });
+
+    updateUI();
+    const msg = document.getElementById("msg");
+    msg.style.color = "#00f2fe";
+    msg.textContent = "Memorize the coins! (5 seconds)";
+    lock = true; 
+    
+    setTimeout(() => {
+        msg.textContent = "Start matching!";
+        msg.style.color = "#fff";
+        document.querySelectorAll(".card").forEach(card => card.classList.remove("flipped"));
+        lock = false; 
+        startTimer();
+    }, 5000);
+}
+
+function flipCard() {
+    let cardInner = this.querySelector('.card');
+    if (lock || this.classList.contains("matched") || cardInner.classList.contains("flipped")) return;
+    
+    initAudio();
+    snd.select(); snd.open();
+    cardInner.classList.add("flipped");
+
+    if (!first) { first = this; return; }
+    
+    second = this;
+    lock = true;
+
+    if (first.dataset.name === second.dataset.name) {
+        snd.correct();
+        setTimeout(() => {
+            first.querySelector('.card').classList.add("matched"); 
+            second.querySelector('.card').classList.add("matched");
+            first.classList.add("matched"); 
+            second.classList.add("matched");
+            
+            score += (10 * level); 
+            found++;
+            updateUI();
+            resetState();
+            
+            if (found === pairs) {
+                clearInterval(timer);
+                snd.win();
+                showModal("LEVEL CLEARED!", `Great job! Moving to level ${level+1}`, "Continue", "win");
+                level++;
+                hp = 3; // Reset lives back to 3 every level up
+            }
+        }, 500); 
+    } else {
+        snd.wrong();
+        hp--; 
+        updateUI();
+        setTimeout(() => {
+            first.querySelector('.card').classList.remove("flipped");
+            second.querySelector('.card').classList.remove("flipped");
+            resetState();
+            if (hp <= 0) gameOver("You ran out of lives! ☠️");
+        }, 800); 
+    }
+}
+
+function resetState() { first = null; second = null; lock = false; }
+
+function startTimer() {
+    clearInterval(timer); 
+    time = 15 + (level * 5); 
+    updateUI();
+    
+    timer = setInterval(() => {
+        time--; 
+        updateUI(); 
+        if (time <= 5 && time > 0) {
+            document.getElementById("ui-timer").style.color = "#ff0000";
+            beep(400, 0.1); 
+        } else {
+            document.getElementById("ui-timer").style.color = "#ef4444";
+        }
+        if (time <= 0) gameOver("Time's Up! ⏰");
+    }, 1000);
+}
+
+function gameOver(reason) {
+    clearInterval(timer);
+    snd.lose();
+    document.getElementById("msg").textContent = "";
+    lock = true;
+    
+    document.querySelectorAll(".card-container:not(.matched) .card").forEach(card => {
+        card.style.opacity = "0.5";
+        card.classList.add("flipped");
+    });
+
+    setTimeout(() => {
+        showModal("GAME OVER", reason, "Play Again", "lose");
+    }, 1000);
+}
+
+function showModal(title, desc, btnText, type) {
+    document.getElementById("modal-title").textContent = title;
+    document.getElementById("modal-title").className = "modal-title " + (type === 'win' ? 'title-win' : 'title-lose');
+    document.getElementById("modal-desc").textContent = desc;
+    document.getElementById("modal-btn").textContent = btnText;
+    document.getElementById("modal-score").textContent = score;
+    document.getElementById("modal-overlay").classList.add("active");
+}
+
+function updateUI() {
+    document.getElementById("ui-level").textContent = level;
+    document.getElementById("ui-timer").textContent = time + "s";
+    document.getElementById("ui-hp").textContent = drawHearts(hp);
+    document.getElementById("ui-score").textContent = score;
+}
+</script>
+</body>
+</html>

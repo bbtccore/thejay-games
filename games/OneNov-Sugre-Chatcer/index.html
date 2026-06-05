@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>⚡ SUGRE CATCHER | JAYN EDITION</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'JAYN';
+            src: url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+            font-display: swap;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: radial-gradient(ellipse at 30% 40%, #0a0f2a, #020108);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'JAYN', 'Orbitron', 'Arial', monospace;
+            touch-action: none;
+            perspective: 1200px;
+            padding: 10px;
+        }
+
+        .game-container {
+            text-align: center;
+            padding: 15px;
+            transform-style: preserve-3d;
+            animation: floatIn 0.6s ease-out;
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        @keyframes floatIn {
+            0% { opacity: 0; transform: translateZ(-200px) rotateX(15deg); }
+            100% { opacity: 1; transform: translateZ(0) rotateX(0); }
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 8vw, 2.8rem);
+            background: linear-gradient(135deg, #ff3366, #ffcc33, #33ffcc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(255, 51, 102, 0.6);
+            letter-spacing: 6px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            font-family: 'JAYN', 'Orbitron', monospace;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: clamp(12px, 4vw, 32px);
+            background: rgba(10, 20, 40, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 60px;
+            padding: 10px 20px;
+            margin: 12px auto;
+            width: fit-content;
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+            transform: translateZ(20px);
+            flex-wrap: wrap;
+        }
+
+        .stats div {
+            font-size: clamp(0.8rem, 3.5vw, 1.2rem);
+            font-weight: bold;
+            color: #ccddff;
+            letter-spacing: 2px;
+            font-family: 'JAYN', monospace;
+        }
+
+        .stats span {
+            background: linear-gradient(135deg, #ffcc44, #ff6644);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: clamp(1.2rem, 5vw, 1.7rem);
+            margin-left: 6px;
+            font-weight: 900;
+            text-shadow: 0 0 8px rgba(255,100,0,0.5);
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 2px rgba(0,255,255,0.3), 0 0 0 5px rgba(255,51,102,0.2);
+            cursor: pointer;
+            background: #03001c;
+            transform: translateZ(30px);
+            transition: transform 0.2s ease;
+            width: 100%;
+            height: auto;
+            touch-action: none;
+        }
+        canvas:active {
+            transform: translateZ(25px) scale(0.98);
+        }
+
+        .zone-hint {
+            display: flex;
+            justify-content: center;
+            gap: clamp(10px, 3vw, 24px);
+            margin: 15px 0 10px;
+            font-size: clamp(0.65rem, 3vw, 0.85rem);
+            font-weight: bold;
+            transform: translateZ(15px);
+            flex-wrap: wrap;
+        }
+
+        .zone {
+            background: rgba(0, 20, 40, 0.7);
+            backdrop-filter: blur(5px);
+            padding: 5px 12px;
+            border-radius: 40px;
+            color: #aaffdd;
+            border-left: 3px solid #ffaa33;
+            font-family: 'JAYN', monospace;
+            letter-spacing: 1.5px;
+        }
+
+        button {
+            background: linear-gradient(95deg, #1f2a4e, #0a1028);
+            border: 1px solid #33ffcc;
+            padding: 8px 20px;
+            margin: 6px 6px;
+            font-weight: bold;
+            border-radius: 40px;
+            font-size: clamp(0.8rem, 3.5vw, 1rem);
+            cursor: pointer;
+            color: #ccffdd;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: 0.12s linear;
+            font-family: 'JAYN', monospace;
+            backdrop-filter: blur(4px);
+            touch-action: manipulation;
+        }
+        button:active {
+            transform: scale(0.94);
+            background: linear-gradient(95deg, #2a3a6e, #121a38);
+        }
+
+        .futuristic-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(8, 12, 28, 0.98);
+            backdrop-filter: blur(24px);
+            border: 2px solid rgba(0, 255, 255, 0.7);
+            border-radius: 48px;
+            padding: clamp(20px, 6vw, 40px) clamp(24px, 8vw, 56px);
+            text-align: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+            box-shadow: 0 0 60px rgba(0, 255, 255, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            font-family: 'JAYN', 'Orbitron', monospace;
+            pointer-events: none;
+            width: 80%;
+            max-width: 400px;
+        }
+        .futuristic-popup.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+        .popup-content h2 {
+            font-size: clamp(1.4rem, 6vw, 2.2rem);
+            background: linear-gradient(135deg, #ff66aa, #ffcc33);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 16px;
+            font-family: 'JAYN', monospace;
+        }
+        .popup-content p {
+            color: #bbddff;
+            font-size: clamp(1rem, 4vw, 1.3rem);
+            margin: 12px 0;
+            font-family: 'JAYN', monospace;
+        }
+        .popup-content button {
+            background: linear-gradient(90deg, #ff3366, #ffaa33);
+            color: #010018;
+            border: none;
+            padding: 10px 28px;
+            font-size: clamp(0.9rem, 4vw, 1.2rem);
+            margin-top: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 60px;
+            transition: 0.1s linear;
+            font-family: 'JAYN', monospace;
+        }
+        .popup-content button:active {
+            transform: scale(0.96);
+        }
+        
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 8px;
+            }
+            .stats {
+                gap: 15px;
+                padding: 8px 16px;
+            }
+            .zone {
+                padding: 4px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h1>⚡ SUGRE CATCHER ⚡</h1>
+    <div class="stats">
+        <div>SCORE <span id="scoreValue">0</span></div>
+        <div>CHAIN <span id="chainValue">0</span></div>
+        <div>MISS <span id="missValue">0</span></div>
+        <div>LEVEL <span id="levelValue">1</span></div>
+    </div>
+    <canvas id="gameCanvas" width="600" height="500"></canvas>
+    <div class="zone-hint">
+        <div class="zone">◀ LEFT ZONE</div>
+        <div class="zone">RIGHT ZONE ▶</div>
+        <div class="zone">▲ TOP ZONE</div>
+        <div class="zone">▼ BOTTOM ZONE</div>
+    </div>
+    <div>
+        <button id="resetBtn">⟳ RESET</button>
+        <button id="soundBtn">🔊 AUDIO ON</button>
+    </div>
+    <div style="font-size: clamp(0.6rem, 2.5vw, 0.7rem); margin-top: 10px; opacity: 0.8; letter-spacing: 1.5px;">⚡ TAP COLORED ZONE BEFORE SURGE REACHES ⚡</div>
+</div>
+
+<div id="gameOverPopup" class="futuristic-popup">
+    <div class="popup-content">
+        <h2>❌ SYSTEM FAILURE ❌</h2>
+        <p>FINAL SCORE: <span id="finalScore">0</span></p>
+        <p>MAX LEVEL: <span id="finalLevel">1</span></p>
+        <button id="restartPopupBtn">⟳ REBOOT</button>
+    </div>
+</div>
+
+<div id="levelUpPopup" class="futuristic-popup">
+    <div class="popup-content">
+        <h2>⚡ CORE UPGRADE ⚡</h2>
+        <p>LEVEL <span id="newLevel">1</span> REACHED</p>
+        <div id="difficultyMsg" style="font-size: 0.9rem; margin-top: 8px;"></div>
+        <button id="closeLevelPopup">ACTIVATE</button>
+    </div>
+</div>
+
+<script>
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.18, volume = 0.22) {
+        if (!soundEnabled) return;
+        try {
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            gain.gain.value = volume;
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(now + duration);
+        } catch(e) {}
+    }
+
+    function soundCatch() { playTone(920, 'sine', 0.1, 0.22); }
+    function soundMiss() { playTone(180, 'sawtooth', 0.4, 0.2); }
+    function soundChainUp() { playTone(1460, 'triangle', 0.08, 0.15); }
+    function soundLevelUp() { [523, 659, 830, 1046].forEach((f,i) => setTimeout(() => playTone(f, 'sine', 0.2, 0.2), i*70)); }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreSpan = document.getElementById('scoreValue');
+    const chainSpan = document.getElementById('chainValue');
+    const missSpan = document.getElementById('missValue');
+    const levelSpan = document.getElementById('levelValue');
+
+    let width = 600, height = 500;
+    
+    function resizeCanvas() {
+        const maxWidth = Math.min(600, window.innerWidth - 40);
+        canvas.style.width = `${maxWidth}px`;
+        canvas.style.height = 'auto';
+        canvas.width = 600;
+        canvas.height = 500;
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let surges = [];
+    let particles = [];
+    let floatingLetters = [];
+    let score = 0;
+    let miss = 0;
+    let chain = 0;
+    let level = 1;
+    let gameActive = true;
+    let spawnCounter = 0;
+    let maxMiss = 6;
+    let letterSpawnCounter = 0;
+
+    const zoneNames = ["L", "R", "T", "B"];
+    const fullZoneNames = ["LEFT", "RIGHT", "TOP", "BOTTOM"];
+    const targetPos = [
+        { x: 100, y: height/2 },
+        { x: width-100, y: height/2 },
+        { x: width/2, y: 80 },
+        { x: width/2, y: height-80 }
+    ];
+
+    const jaynLetters = [
+        { char: 'J', color: '#ff3366', glow: '#ff6699' },
+        { char: 'A', color: '#ffcc33', glow: '#ffdd66' },
+        { char: 'Y', color: '#33ffcc', glow: '#66ffdd' },
+        { char: 'N', color: '#aa66ff', glow: '#cc99ff' }
+    ];
+
+    function spawnFloatingLetter() {
+        if (!gameActive) return;
+        let letterData = jaynLetters[Math.floor(Math.random() * jaynLetters.length)];
+        floatingLetters.push({
+            char: letterData.char,
+            x: Math.random() * (width - 100) + 50,
+            y: -30,
+            vx: (Math.random() - 0.5) * 40,
+            vy: 35 + Math.random() * 40,
+            life: 1.0,
+            color: letterData.color,
+            glow: letterData.glow,
+            size: 24 + Math.random() * 12,
+            rotation: 0,
+            rotSpeed: (Math.random() - 0.5) * 3
+        });
+    }
+
+    function getDifficultyStats() {
+        let baseSpeed = 150 + level * 18;
+        let spawnBaseDelay = Math.max(0.22, 0.85 - level * 0.045);
+        let maxSimultaneous = Math.min(4, 1 + Math.floor(level / 5));
+        let penaltyMultiplier = 1 + Math.floor(level / 8) * 0.2;
+        
+        return {
+            speed: Math.min(680, baseSpeed),
+            spawnDelay: spawnBaseDelay,
+            maxSurges: maxSimultaneous,
+            penalty: penaltyMultiplier,
+            requiredScore: level * 160 + Math.floor(level / 3) * 40
+        };
+    }
+
+    function getSurgeSpeed() {
+        return getDifficultyStats().speed;
+    }
+
+    function addSurge() {
+        if (!gameActive) return;
+        let currentCount = surges.length;
+        let maxAllowed = getDifficultyStats().maxSurges;
+        if (currentCount >= maxAllowed) return;
+        
+        let zone = Math.floor(Math.random() * 4);
+        let start = getSpawnPoint(zone);
+        let target = targetPos[zone];
+        let dx = target.x - start.x;
+        let dy = target.y - start.y;
+        let dist = Math.hypot(dx, dy);
+        let speed = getSurgeSpeed();
+        let duration = dist / speed;
+        
+        let sizeVariation = 12 - Math.floor(level / 10) * 2;
+        let radiusVal = Math.max(6, sizeVariation);
+        
+        surges.push({
+            zone: zone,
+            t: 0,
+            duration: duration,
+            startX: start.x,
+            startY: start.y,
+            endX: target.x,
+            endY: target.y,
+            radius: radiusVal,
+            color: zone === 0 ? '#ff4466' : (zone===1 ? '#44ff66' : (zone===2 ? '#44aaff' : '#ffcc44')),
+            glow: '#ffaa88'
+        });
+    }
+
+    function getSpawnPoint(zone) {
+        if (zone === 0) return { x: width+40, y: height/2 + (Math.random() - 0.5) * 100 };
+        if (zone === 1) return { x: -40, y: height/2 + (Math.random() - 0.5) * 100 };
+        if (zone === 2) return { x: width/2 + (Math.random() - 0.5) * 140, y: height+50 };
+        if (zone === 3) return { x: width/2 + (Math.random() - 0.5) * 140, y: -50 };
+        return { x: width/2, y: height/2 };
+    }
+
+    function showFuturisticPopup(popupId, duration = 1800) {
+        const popup = document.getElementById(popupId);
+        if (!popup) return;
+        popup.classList.add('active');
+        if (duration > 0) {
+            setTimeout(() => {
+                popup.classList.remove('active');
+            }, duration);
+        }
+    }
+
+    function showLevelPopup(levelNum) {
+        const popup = document.getElementById('levelUpPopup');
+        document.getElementById('newLevel').innerText = levelNum;
+        const diff = getDifficultyStats();
+        let msg = "";
+        if (levelNum <= 3) msg = "▸ SPEED INCREASED";
+        else if (levelNum <= 6) msg = "▸ FASTER + MORE SURGES";
+        else if (levelNum <= 10) msg = "▸ EXTREME SPEED ▸ SMALLER TARGETS";
+        else msg = "▸ CHAOS MODE ACTIVE ▸ MAX INTENSITY";
+        document.getElementById('difficultyMsg').innerHTML = msg;
+        popup.classList.add('active');
+        setTimeout(() => {
+            popup.classList.remove('active');
+        }, 1800);
+        
+        for(let i = 0; i < 8; i++) {
+            setTimeout(() => spawnFloatingLetter(), i * 80);
+        }
+    }
+
+    function catchZone(zoneIndex) {
+        if (!gameActive) return;
+        let caught = false;
+        for (let i=0; i<surges.length; i++) {
+            const s = surges[i];
+            if (s.zone === zoneIndex && s.t < 0.98) {
+                const hitX = s.startX + (s.endX - s.startX) * s.t;
+                const hitY = s.startY + (s.endY - s.startY) * s.t;
+                for(let p=0; p<18; p++) {
+                    particles.push({
+                        x: hitX, y: hitY,
+                        vx: (Math.random() - 0.5)*260,
+                        vy: (Math.random() - 0.5)*260,
+                        life: 0.85,
+                        color: s.color,
+                        size: 4
+                    });
+                }
+                
+                let letterToSpawn = jaynLetters[Math.floor(Math.random() * 4)];
+                floatingLetters.push({
+                    char: letterToSpawn.char,
+                    x: hitX,
+                    y: hitY,
+                    vx: (Math.random() - 0.5) * 80,
+                    vy: -60 - Math.random() * 50,
+                    life: 1.2,
+                    color: letterToSpawn.color,
+                    glow: letterToSpawn.glow,
+                    size: 28,
+                    rotation: 0,
+                    rotSpeed: (Math.random() - 0.5) * 4
+                });
+                
+                surges.splice(i,1);
+                let chainBonus = Math.floor(chain / 5) * 3;
+                let addScore = 10 + chainBonus;
+                if (level > 5) addScore += Math.floor(level / 3);
+                score += addScore;
+                chain++;
+                soundCatch();
+                if (chain % 7 === 0) soundChainUp();
+                updateUI();
+                caught = true;
+                break;
+            }
+        }
+        if (!caught && gameActive) {
+            let penalty = getDifficultyStats().penalty;
+            let missPenalty = Math.ceil(penalty);
+            miss += missPenalty;
+            chain = 0;
+            soundMiss();
+            updateUI();
+            if (miss >= maxMiss) {
+                gameOver();
+            }
+        }
+    }
+
+    function gameOver() {
+        if (!gameActive) return;
+        gameActive = false;
+        playTone(120, 'sawtooth', 0.7, 0.3);
+        document.getElementById('finalScore').innerText = Math.floor(score);
+        document.getElementById('finalLevel').innerText = level;
+        showFuturisticPopup('gameOverPopup', 0);
+    }
+
+    function levelUp() {
+        level++;
+        levelSpan.innerText = level;
+        soundLevelUp();
+        let newMaxMiss = Math.min(14, 6 + Math.floor(level / 4));
+        maxMiss = newMaxMiss;
+        surges = [];
+        updateUI();
+        showLevelPopup(level);
+    }
+
+    function updateUI() {
+        scoreSpan.innerText = Math.floor(score);
+        chainSpan.innerText = chain;
+        missSpan.innerText = miss;
+        levelSpan.innerText = level;
+        let required = getDifficultyStats().requiredScore;
+        if (score >= required && gameActive) {
+            levelUp();
+        }
+    }
+
+    function resetGame() {
+        gameActive = true;
+        surges = [];
+        particles = [];
+        floatingLetters = [];
+        score = 0;
+        miss = 0;
+        chain = 0;
+        level = 1;
+        maxMiss = 6;
+        spawnCounter = 0;
+        letterSpawnCounter = 0;
+        updateUI();
+        playTone(440, 'sine', 0.2, 0.2);
+        const popup = document.getElementById('gameOverPopup');
+        popup.classList.remove('active');
+    }
+
+    let lastTimestamp = 0;
+    function gameUpdate(deltaSec) {
+        if (!gameActive) return;
+        if (deltaSec > 0.05) deltaSec = 0.05;
+
+        for (let i=0; i<surges.length; i++) {
+            const s = surges[i];
+            s.t += deltaSec / s.duration;
+            if (s.t >= 1.0) {
+                surges.splice(i,1);
+                let penalty = getDifficultyStats().penalty;
+                miss += Math.ceil(penalty);
+                chain = 0;
+                soundMiss();
+                updateUI();
+                if (miss >= maxMiss) gameOver();
+                i--;
+            }
+        }
+
+        let spawnDelay = getDifficultyStats().spawnDelay;
+        spawnCounter += deltaSec;
+        if (spawnCounter >= spawnDelay && gameActive) {
+            spawnCounter = 0;
+            let surgeCount = Math.min(getDifficultyStats().maxSurges, 1 + Math.floor(level / 6));
+            for(let k=0; k<surgeCount; k++) addSurge();
+        }
+        
+        letterSpawnCounter += deltaSec;
+        let letterSpawnRate = Math.max(0.5, 2.5 - level * 0.08);
+        if (letterSpawnCounter >= letterSpawnRate && gameActive) {
+            letterSpawnCounter = 0;
+            spawnFloatingLetter();
+        }
+
+        for (let i=0; i<particles.length; i++) {
+            particles[i].x += particles[i].vx * deltaSec;
+            particles[i].y += particles[i].vy * deltaSec;
+            particles[i].life -= deltaSec * 2.4;
+            if (particles[i].life <= 0) {
+                particles.splice(i,1);
+                i--;
+            }
+        }
+        
+        for (let i=0; i<floatingLetters.length; i++) {
+            const l = floatingLetters[i];
+            l.x += l.vx * deltaSec;
+            l.y += l.vy * deltaSec;
+            l.vy += 25 * deltaSec;
+            l.life -= deltaSec * 0.8;
+            l.rotation += l.rotSpeed * deltaSec * 90;
+            if (l.y > height + 100 || l.life <= 0 || l.x < -100 || l.x > width + 100) {
+                floatingLetters.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        
+        let gridIntensity = Math.min(0.12, 0.04 + level * 0.003);
+        for(let i=0; i<20; i++) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0, 255, 200, ${gridIntensity + Math.sin(Date.now()*0.002 + i)*0.01})`;
+            ctx.lineWidth = 0.8;
+            ctx.moveTo(i*35, 0); ctx.lineTo(i*35, height);
+            ctx.stroke();
+            ctx.moveTo(0, i*30); ctx.lineTo(width, i*30);
+            ctx.stroke();
+        }
+
+        for(let z=0; z<4; z++) {
+            let pos = targetPos[z];
+            let pulseSize = 28 + Math.sin(Date.now() * 0.008 + z) * (level > 8 ? 4 : 2);
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = "#0ff";
+            const grad = ctx.createRadialGradient(pos.x-5, pos.y-5, 5, pos.x, pos.y, 35);
+            grad.addColorStop(0, z===0 ? '#ff3366aa' : (z===1 ? '#33ff66aa' : (z===2 ? '#33aaffaa' : '#ffaa33aa')));
+            grad.addColorStop(1, '#000000aa');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, pulseSize, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "#ffffff";
+            ctx.font = `bold ${level > 10 ? 18 : 20}px 'JAYN', 'Orbitron', monospace`;
+            ctx.shadowBlur = 6;
+            ctx.fillText(fullZoneNames[z][0], pos.x-7, pos.y+7);
+        }
+
+        for(let s of surges) {
+            let t = s.t;
+            let x = s.startX + (s.endX - s.startX) * t;
+            let y = s.startY + (s.endY - s.startY) * t;
+            let shake = level > 12 ? Math.sin(Date.now() * 0.02) * 1.5 : 0;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = s.glow;
+            ctx.beginPath();
+            ctx.arc(x + shake, y + shake, s.radius-1 + Math.sin(Date.now()*0.025)*2, 0, Math.PI*2);
+            ctx.fillStyle = s.color;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x, y, s.radius-5, 0, Math.PI*2);
+            ctx.fillStyle = "white";
+            ctx.fill();
+            ctx.fillStyle = "#111";
+            ctx.font = `bold ${Math.max(11, 15 - Math.floor(level/12))}px 'JAYN', monospace`;
+            ctx.fillText(zoneNames[s.zone], x-5, y+5);
+        }
+        
+        for(let l of floatingLetters) {
+            ctx.save();
+            ctx.translate(l.x, l.y);
+            ctx.rotate(l.rotation * Math.PI / 180);
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = l.glow;
+            ctx.font = `bold ${l.size}px 'JAYN', 'Orbitron', monospace`;
+            ctx.fillStyle = l.color;
+            ctx.globalAlpha = Math.min(1, l.life * 1.2);
+            ctx.fillText(l.char, -l.size/2, l.size/3);
+            ctx.restore();
+        }
+
+        for(let p of particles) {
+            ctx.globalAlpha = p.life * 0.9;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x-3, p.y-3, 6, 6);
+        }
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+        ctx.font = "bold 12px 'JAYN', monospace";
+        ctx.fillStyle = "#88ffff";
+        ctx.fillText(`⚠️ CORE: ${maxMiss-miss}`, width-130, 35);
+        
+        ctx.font = "bold 11px 'JAYN'";
+        ctx.fillStyle = "#ffcc3388";
+        ctx.fillText("J A Y N  //  ACTIVE", 15, 35);
+        
+        if (level > 5) {
+            ctx.font = "bold 9px 'JAYN'";
+            ctx.fillStyle = "#ff6666aa";
+            ctx.fillText("DIFFICULTY SPIKE", width-145, 55);
+        }
+    }
+
+    function getZoneFromClick(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        let canvasX = (clientX - rect.left) * scaleX;
+        let canvasY = (clientY - rect.top) * scaleY;
+        if (canvasX < 0 || canvasX > width || canvasY < 0 || canvasY > height) return -1;
+        let minDist = level > 8 ? 55 : 70;
+        let bestZone = -1;
+        for(let i=0; i<4; i++) {
+            let dx = canvasX - targetPos[i].x;
+            let dy = canvasY - targetPos[i].y;
+            let d = Math.hypot(dx,dy);
+            if(d < minDist) {
+                minDist = d;
+                bestZone = i;
+            }
+        }
+        return bestZone;
+    }
+
+    function onCanvasTap(e) {
+        e.preventDefault();
+        if(!gameActive) return;
+        let clientX, clientY;
+        if(e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        let zoneIdx = getZoneFromClick(clientX, clientY);
+        if(zoneIdx !== -1) {
+            catchZone(zoneIdx);
+        } else if(gameActive) {
+            let penalty = getDifficultyStats().penalty;
+            miss += Math.ceil(penalty);
+            chain = 0;
+            soundMiss();
+            updateUI();
+            if(miss >= maxMiss) gameOver();
+        }
+    }
+
+    let animTime = 0;
+    function animate(nowMs) {
+        requestAnimationFrame(animate);
+        if(!animTime) { animTime = nowMs; return; }
+        let delta = Math.min(0.033, (nowMs - animTime) / 1000);
+        if(delta <= 0) return;
+        animTime = nowMs;
+        gameUpdate(delta);
+        draw();
+    }
+
+    canvas.addEventListener('click', onCanvasTap);
+    canvas.addEventListener('touchstart', onCanvasTap, {passive: false});
+    document.getElementById('resetBtn').addEventListener('click', () => { resetGame(); });
+    document.getElementById('soundBtn').addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        document.getElementById('soundBtn').innerText = soundEnabled ? "🔊 AUDIO ON" : "🔇 AUDIO OFF";
+        if(soundEnabled && audioCtx) audioCtx.resume();
+        else if(!soundEnabled && audioCtx) audioCtx.suspend();
+    });
+    document.getElementById('restartPopupBtn').addEventListener('click', () => {
+        document.getElementById('gameOverPopup').classList.remove('active');
+        resetGame();
+    });
+    document.getElementById('closeLevelPopup').addEventListener('click', () => {
+        document.getElementById('levelUpPopup').classList.remove('active');
+    });
+
+    resetGame();
+    animate(0);
+    
+    function enableAudioOnFirstTap() {
+        initAudio();
+        canvas.removeEventListener('click', enableAudioOnFirstTap);
+        canvas.removeEventListener('touchstart', enableAudioOnFirstTap);
+    }
+    canvas.addEventListener('click', enableAudioOnFirstTap);
+    canvas.addEventListener('touchstart', enableAudioOnFirstTap);
+</script>
+</body>
+</html>
