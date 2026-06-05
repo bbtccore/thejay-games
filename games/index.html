@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jay Coin Catcher</title>
+    <style>
+        :root {
+            --bg: #09090f;
+            --bg2: #13131d;
+            --accent: #AB7BFF;
+            --text: #F5F5FF;
+            --gold: #FBBF24;
+            --red: #F87171;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+        }
+        h1 span { color: var(--accent); }
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+        }
+        canvas {
+            background: var(--bg2);
+            border: 2px solid rgba(171, 123, 255, 0.3);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.15);
+            display: block;
+            width: 100%;
+            aspect-ratio: 4/5;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .stat-box { display: flex; align-items: center; gap: 6px; }
+        .score-val { color: var(--gold); font-size: 1.1rem; }
+        .lives-val { color: var(--red); font-size: 1.1rem; }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(9, 9, 15, 0.9);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 20px;
+            text-align: center;
+        }
+        .overlay.show { opacity: 1; pointer-events: auto; }
+        .overlay h2 { font-size: 2rem; color: var(--accent); margin-bottom: 16px; font-weight: 800; }
+        .overlay h2.game-over-title { color: var(--red); }
+        .instruction-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(171, 123, 255, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            max-width: 280px;
+        }
+        .instruction-box p { color: #9898B8; margin-bottom: 8px; font-size: 0.9rem; text-align: left;}
+        .instruction-box p:last-child { margin-bottom: 0; }
+        .btn {
+            background: linear-gradient(135deg, #7C3AED 0%, #AB7BFF 100%);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.96); }
+    </style>
+</head>
+<body>
+
+    <h1>JAY <span>COIN CATCHER</span></h1>
+    
+    <div class="game-container">
+        <canvas id="gameCanvas" width="400" height="500"></canvas>
+        
+        <div class="overlay show" id="startScreen">
+            <h2>HOW TO PLAY</h2>
+            <div class="instruction-box">
+                <p>🚀 <b>Control:</b> Move your Mouse or Drag your Finger left/right to move the basket.</p>
+                <p>🪙 <b>Objective:</b> Catch the falling golden <b style="color:var(--gold)">JAY Coins</b> to earn +10 points.</p>
+                <p>💥 <b>Warning:</b> Avoid the red <b>Bombs (X)</b>! Hitting a bomb or letting a coin drop costs 1 life.</p>
+            </div>
+            <button class="btn" id="startBtn">Start Game</button>
+        </div>
+
+        <div class="overlay" id="gameOverScreen">
+            <h2 class="game-over-title">GAME OVER</h2>
+            <p style="color: #9898B8; margin-bottom: 20px; font-size: 1.1rem;">Final Score: <span id="finalScore" style="color:var(--gold); font-weight:bold;">0</span></p>
+            <button class="btn" id="restartBtn">Play Again</button>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box">🪙 Score: <span id="score" class="score-val">0</span></div>
+        <div class="stat-box">❤️ Lives: <span id="lives" class="lives-val">3</span></div>
+    </div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
+const livesEl = document.getElementById("lives");
+const startScreen = document.getElementById("startScreen");
+const startBtn = document.getElementById("startBtn");
+const gameOverScreen = document.getElementById("gameOverScreen");
+const finalScoreEl = document.getElementById("finalScore");
+const restartBtn = document.getElementById("restartBtn");
+
+let score, lives, gameStarted = false, gameOver = false, items, spawnTimer;
+
+// Audio Synthesizer Lokal (Web Audio API)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'coin') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    } else if (type === 'hit') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'over') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(200, audioCtx.currentTime + 0.15);
+        osc.frequency.setValueAtTime(120, audioCtx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+    }
+}
+
+const basket = {
+    x: 160,
+    y: 450,
+    width: 80,
+    height: 16,
+    color: "#AB7BFF"
+};
+
+function startGame() {
+    gameStarted = true;
+    startScreen.classList.remove("show");
+    init();
+}
+
+function init() {
+    score = 0;
+    lives = 3;
+    gameOver = false;
+    items = [];
+    scoreEl.textContent = score;
+    livesEl.textContent = lives;
+    gameOverScreen.classList.remove("show");
+    
+    clearTimeout(spawnTimer);
+    spawnItem();
+}
+
+function spawnItem() {
+    if (gameOver || !gameStarted) return;
+    const isBomb = Math.random() < 0.25;
+    items.push({
+        x: Math.random() * (canvas.width - 24) + 12,
+        y: -20,
+        radius: isBomb ? 12 : 10,
+        speed: 3 + Math.random() * 3 + (score / 100),
+        isBomb: isBomb
+    });
+    spawnTimer = setTimeout(spawnItem, Math.max(400, 1000 - (score * 4)));
+}
+
+function moveBasket(e) {
+    if (!gameStarted || gameOver) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const canvasX = (clientX - rect.left) * (canvas.width / rect.width);
+    basket.x = canvasX - basket.width / 2;
+    if (basket.x < 0) basket.x = 0;
+    if (basket.x > canvas.width - basket.width) basket.x = canvas.width - basket.width;
+}
+
+canvas.addEventListener("mousemove", moveBasket);
+canvas.addEventListener("touchmove", (e) => { e.preventDefault(); moveBasket(e); }, { passive: false });
+
+function update() {
+    if (!gameStarted || gameOver) return;
+
+    for (let i = items.length - 1; i >= 0; i--) {
+        const item = items[i];
+        item.y += item.speed;
+
+        if (item.y + item.radius >= basket.y && 
+            item.x >= basket.x - 5 && 
+            item.x <= basket.x + basket.width + 5) {
+            
+            if (item.isBomb) {
+                lives--;
+                playSound('hit');
+                livesEl.textContent = lives;
+                if (lives <= 0) endGame();
+            } else {
+                score += 10;
+                playSound('coin');
+                scoreEl.textContent = score;
+            }
+            items.splice(i, 1);
+            continue;
+        }
+
+        if (item.y - item.radius > canvas.height) {
+            if (!item.isBomb) {
+                lives--;
+                playSound('hit');
+                livesEl.textContent = lives;
+                if (lives <= 0) endGame();
+            }
+            items.splice(i, 1);
+        }
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Background Grid
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
+    ctx.lineWidth = 1;
+    for(let i=0; i<canvas.width; i+=40) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
+    for(let i=0; i<canvas.height; i+=40) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(canvas.width,i); ctx.stroke(); }
+
+    if (!gameStarted) return;
+
+    // Basket
+    ctx.fillStyle = basket.color;
+    ctx.beginPath();
+    ctx.roundRect(basket.x, basket.y, basket.width, basket.height, 8);
+    ctx.fill();
+
+    // Items
+    items.forEach(item => {
+        ctx.beginPath();
+        ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+        if (item.isBomb) {
+            ctx.fillStyle = "#F87171";
+            ctx.fill();
+            ctx.fillStyle = "#09090f";
+            ctx.font = "bold 10px sans-serif";
+            ctx.fillText("X", item.x - 3, item.y + 3);
+        } else {
+            ctx.fillStyle = "#FBBF24";
+            ctx.fill();
+            ctx.fillStyle = "#7C3AED";
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillText("J", item.x - 3, item.y + 4);
+        }
+        ctx.closePath();
+    });
+}
+
+function endGame() {
+    gameOver = true;
+    playSound('over');
+    finalScoreEl.textContent = score;
+    gameOverScreen.classList.add("show");
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+startBtn.addEventListener("click", startGame);
+restartBtn.addEventListener("click", init);
+loop();
+</script>
+</body>
+</html>
