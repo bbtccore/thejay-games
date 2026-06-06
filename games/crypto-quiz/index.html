@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JAY Crypto Quiz — Play & Earn</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0a0a1a 0%, #0a2e1a 50%, #0a1a2e 100%);
+  min-height: 100vh; color: #fff;
+}
+.header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 24px; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.logo { font-size: 24px; font-weight: 800; }
+.logo span { color: #00ff88; }
+.wallet-btn {
+  background: linear-gradient(135deg, #00ff88, #00cc66);
+  border: none; padding: 10px 20px; border-radius: 12px;
+  color: #000; font-weight: 600; cursor: pointer; font-size: 14px;
+}
+.wallet-btn.connected { background: rgba(255,255,255,0.1); color: #fff; }
+.container { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
+
+.balance-card {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 20px; margin-bottom: 24px; text-align: center;
+}
+.balance-label { font-size: 14px; color: #888; }
+.balance-amount { font-size: 36px; font-weight: 800; color: #00ff88; }
+
+/* Quiz Stats */
+.quiz-stats {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px;
+}
+.qstat {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px; padding: 14px; text-align: center;
+}
+.qstat-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+.qstat-val { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+/* Quiz Area */
+.quiz-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px; padding: 28px 24px; margin-bottom: 24px;
+}
+.progress-bar {
+  height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-bottom: 20px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, #00ff88, #00cc66);
+  border-radius: 3px; transition: width 0.5s;
+}
+.question-num { font-size: 13px; color: #666; margin-bottom: 8px; }
+.question-text { font-size: 20px; font-weight: 700; line-height: 1.4; margin-bottom: 24px; }
+
+.options { display: flex; flex-direction: column; gap: 12px; }
+.option {
+  background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 14px; padding: 16px 20px; text-align: left; cursor: pointer;
+  font-size: 16px; color: #fff; transition: all 0.3s; display: flex; align-items: center; gap: 12px;
+}
+.option:hover { border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.05); }
+.option.correct {
+  border-color: #00ff88; background: rgba(0,255,136,0.15);
+  animation: pulse-correct 0.5s;
+}
+.option.wrong {
+  border-color: #ff4444; background: rgba(255,68,68,0.15);
+  animation: shake 0.4s;
+}
+.option.disabled { pointer-events: none; opacity: 0.6; }
+.option-letter {
+  width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-correct { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+
+/* Timer */
+.qtimer { font-size: 14px; color: #888; margin-bottom: 16px; text-align: center; }
+.qtimer span { color: #00ff88; font-weight: 700; font-size: 18px; }
+.qtimer.warning span { color: #ffaa00; }
+.qtimer.danger span { color: #ff4444; }
+
+/* Result */
+.result-card {
+  display: none; text-align: center; padding: 40px 24px;
+}
+.result-card.show { display: block; }
+.result-emoji { font-size: 64px; margin-bottom: 16px; }
+.result-title { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+.result-score { font-size: 56px; font-weight: 800; color: #00ff88; }
+.result-detail { font-size: 15px; color: #888; margin: 12px 0; }
+.result-reward { font-size: 20px; color: #ffd700; font-weight: 700; }
+.result-btn {
+  background: linear-gradient(135deg, #00ff88, #00cc66); border: none;
+  padding: 16px 48px; border-radius: 14px; color: #000; font-size: 18px;
+  font-weight: 700; cursor: pointer; margin-top: 20px;
+}
+
+/* Start Screen */
+.start-screen { text-align: center; padding: 40px 0; }
+.start-title { font-size: 32px; font-weight: 800; margin-bottom: 12px; }
+.start-sub { font-size: 16px; color: #888; margin-bottom: 24px; line-height: 1.6; }
+.start-btn {
+  background: linear-gradient(135deg, #00ff88, #00cc66); border: none;
+  padding: 18px 56px; border-radius: 16px; color: #000; font-size: 20px;
+  font-weight: 800; cursor: pointer;
+}
+
+.footer { text-align: center; padding: 24px; color: #444; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">JAY <span>Quiz</span></div>
+  <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">Connect Wallet</button>
+</div>
+
+<div class="container">
+  <div class="balance-card">
+    <div class="balance-label">Your JAY Balance</div>
+    <div class="balance-amount" id="balance">0.00</div>
+  </div>
+
+  <div class="quiz-stats">
+    <div class="qstat"><div class="qstat-label">Played</div><div class="qstat-val" id="qPlayed">0</div></div>
+    <div class="qstat"><div class="qstat-label">Correct</div><div class="qstat-val" id="qCorrect">0</div></div>
+    <div class="qstat"><div class="qstat-label">Streak</div><div class="qstat-val" id="qStreak">0</div></div>
+  </div>
+
+  <!-- Start Screen -->
+  <div class="quiz-card" id="startScreen">
+    <div class="start-screen">
+      <div class="start-title">🧠 Crypto Quiz</div>
+      <div class="start-sub">Test your crypto knowledge!<br>10 questions • 15s each • Earn JAY for correct answers</div>
+      <button class="start-btn" onclick="startQuiz()">Start Quiz</button>
+    </div>
+  </div>
+
+  <!-- Quiz Card -->
+  <div class="quiz-card" id="quizCard" style="display:none;">
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    <div class="qtimer">Time: <span id="qTimer">15</span>s</div>
+    <div class="question-num" id="qNum">Question 1/10</div>
+    <div class="question-text" id="qText"></div>
+    <div class="options" id="options"></div>
+  </div>
+
+  <!-- Result Card -->
+  <div class="quiz-card result-card" id="resultCard">
+    <div class="result-emoji" id="resEmoji">🎉</div>
+    <div class="result-title" id="resTitle">Great Job!</div>
+    <div class="result-score" id="resScore">8/10</div>
+    <div class="result-detail" id="resDetail">Correct answers</div>
+    <div class="result-reward" id="resReward">+2.00 JAY earned!</div>
+    <button class="result-btn" onclick="startQuiz()">Play Again</button>
+  </div>
+</div>
+
+<div class="footer">Powered by The Jay Network • games.thejaynetwork.com</div>
+
+<script>
+const JAY_RPC = 'http://152.53.195.5:1317';
+const CHAIN_ID = 'thejaynetwork';
+
+const QUESTIONS = [
+  { q: "What consensus mechanism does The Jay Network use?", o: ["Proof of Work", "CometBFT (BFT)", "Proof of Stake", "Delegated PoW"], a: 1 },
+  { q: "What is the native token of The Jay Network?", o: ["ETH", "ATOM", "JAY", "BTC"], a: 2 },
+  { q: "What SDK is The Jay Network built on?", o: ["Ethereum SDK", "Cosmos SDK", "Solana SDK", "Substrate"], a: 1 },
+  { q: "What is the block time of The Jay Network?", o: ["~12 seconds", "~5 seconds", "~60 seconds", "~15 seconds"], a: 1 },
+  { q: "What is the address prefix for JAY Network wallets?", o: ["cosmos", "osmo", "yjay", "juno"], a: 2 },
+  { q: "What does IBC stand for in Cosmos ecosystem?", o: ["Internet Blockchain Connection", "Inter-Blockchain Communication", "Integrated Block Chain", "Inter Block Consensus"], a: 1 },
+  { q: "How many validators can The Jay Network have max?", o: ["50", "100", "150", "200"], a: 1 },
+  { q: "What is the minimum gas price on JAY Network?", o: ["0.025 ujay", "0.0025 ujay", "0.25 ujay", "2.5 ujay"], a: 1 },
+  { q: "What fault tolerance does CometBFT provide?", o: ["Up to 1/2 offline", "Up to 1/3 offline", "Up to 1/4 offline", "Up to 2/3 offline"], a: 1 },
+  { q: "What is the denomination unit for JAY tokens?", o: ["jay", "nay", "ujay", "mjay"], a: 2 },
+  { q: "What is Keplr?", o: ["A DEX", "A crypto wallet", "A blockchain", "A mining pool"], a: 1 },
+  { q: "What does DeFi stand for?", o: ["Digital Finance", "Decentralized Finance", "Distributed Funds", "Direct Finance"], a: 1 },
+  { q: "What is a smart contract?", o: ["A legal document", "Self-executing code on blockchain", "A crypto exchange", "A wallet type"], a: 1 },
+  { q: "What does HODL mean in crypto?", o: ["Hold On for Dear Life", "It's just a typo of 'hold'", "High Output Digital Ledger", "Both A and B"], a: 3 },
+  { q: "What is a gas fee?", o: ["Fee for fuel", "Transaction cost on blockchain", "Mining reward", "Wallet fee"], a: 1 },
+];
+
+let walletAddress = null;
+let currentQ = 0;
+let score = 0;
+let answers = [];
+let qTimerInterval = null;
+let qTimeLeft = 15;
+let streak = parseInt(localStorage.getItem('jay_q_streak') || '0');
+let totalPlayed = parseInt(localStorage.getItem('jay_q_played') || '0');
+let totalCorrect = parseInt(localStorage.getItem('jay_q_correct') || '0');
+
+document.getElementById('qPlayed').textContent = totalPlayed;
+document.getElementById('qCorrect').textContent = totalCorrect;
+document.getElementById('qStreak').textContent = streak;
+
+async function connectWallet() {
+  if (walletAddress) return;
+  const w = window.keplr || window.leap;
+  if (!w) { alert('Install Keplr or Leap!'); return; }
+  try {
+    await w.enable(CHAIN_ID);
+    const key = await w.getKey(CHAIN_ID);
+    walletAddress = key.bech32Address;
+    const btn = document.getElementById('walletBtn');
+    btn.textContent = walletAddress.slice(0, 8) + '...' + walletAddress.slice(-6);
+    btn.classList.add('connected');
+    fetchBalance();
+  } catch (e) { alert('Connection rejected.'); }
+}
+
+async function fetchBalance() {
+  if (!walletAddress) return;
+  try {
+    const r = await fetch(`${JAY_RPC}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+    const d = await r.json();
+    const j = d.balances.find(b => b.denom === 'ujay');
+    if (j) document.getElementById('balance').textContent = (parseInt(j.amount)/1e6).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
+  } catch(e){}
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz() {
+  if (!walletAddress) { alert('Connect wallet first!'); return; }
+  currentQ = 0; score = 0; answers = [];
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('resultCard').classList.remove('show');
+  document.getElementById('quizCard').style.display = 'block';
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = QUESTIONS[currentQ];
+  document.getElementById('qNum').textContent = `Question ${currentQ+1}/${QUESTIONS.length}`;
+  document.getElementById('qText').textContent = q.q;
+  document.getElementById('progress').style.width = ((currentQ/QUESTIONS.length)*100) + '%';
+
+  const letters = ['A','B','C','D'];
+  const opts = document.getElementById('options');
+  opts.innerHTML = q.o.map((o, i) =>
+    `<div class="option" onclick="selectAnswer(${i})">
+      <div class="option-letter">${letters[i]}</div>
+      <div>${o}</div>
+    </div>`
+  ).join('');
+
+  qTimeLeft = 15;
+  document.getElementById('qTimer').textContent = qTimeLeft;
+  document.getElementById('qTimer').parentElement.className = 'qtimer';
+  clearInterval(qTimerInterval);
+  qTimerInterval = setInterval(() => {
+    qTimeLeft--;
+    document.getElementById('qTimer').textContent = qTimeLeft;
+    if (qTimeLeft <= 5) document.getElementById('qTimer').parentElement.className = 'qtimer danger';
+    else if (qTimeLeft <= 8) document.getElementById('qTimer').parentElement.className = 'qtimer warning';
+    if (qTimeLeft <= 0) { clearInterval(qTimerInterval); selectAnswer(-1); }
+  }, 1000);
+}
+
+function selectAnswer(idx) {
+  clearInterval(qTimerInterval);
+  const q = QUESTIONS[currentQ];
+  const correct = idx === q.a;
+  const opts = document.querySelectorAll('.option');
+
+  opts.forEach((o, i) => {
+    o.classList.add('disabled');
+    if (i === q.a) o.classList.add('correct');
+    if (i === idx && !correct) o.classList.add('wrong');
+  });
+
+  if (correct) score++;
+  answers.push({ q: currentQ, selected: idx, correct });
+
+  setTimeout(() => {
+    currentQ++;
+    if (currentQ < QUESTIONS.length) showQuestion();
+    else showResult();
+  }, 1200);
+}
+
+function showResult() {
+  document.getElementById('quizCard').style.display = 'none';
+  document.getElementById('resultCard').classList.add('show');
+  document.getElementById('progress').style.width = '100%';
+
+  const pct = score / QUESTIONS.length;
+  document.getElementById('resScore').textContent = `${score}/${QUESTIONS.length}`;
+
+  if (pct >= 0.8) {
+    document.getElementById('resEmoji').textContent = '🏆';
+    document.getElementById('resTitle').textContent = 'Crypto Expert!';
+  } else if (pct >= 0.5) {
+    document.getElementById('resEmoji').textContent = '🎉';
+    document.getElementById('resTitle').textContent = 'Good Job!';
+  } else {
+    document.getElementById('resEmoji').textContent = '📚';
+    document.getElementById('resTitle').textContent = 'Keep Learning!';
+  }
+
+  const reward = (score * 0.5).toFixed(2);
+  document.getElementById('resReward').textContent = `+${reward} JAY earned!`;
+
+  totalPlayed++;
+  totalCorrect += score;
+  if (pct >= 0.8) streak++; else streak = 0;
+  localStorage.setItem('jay_q_played', totalPlayed);
+  localStorage.setItem('jay_q_correct', totalCorrect);
+  localStorage.setItem('jay_q_streak', streak);
+
+  document.getElementById('qPlayed').textContent = totalPlayed;
+  document.getElementById('qCorrect').textContent = totalCorrect;
+  document.getElementById('qStreak').textContent = streak;
+
+  // TODO: Submit to backend
+  // submitReward(walletAddress, reward);
+}
+</script>
+</body>
+</html>
