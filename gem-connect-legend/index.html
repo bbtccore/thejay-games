@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gem Connect Legends</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+min-height:100vh;
+background:
+radial-gradient(circle at top,#0a3b3b 0%,#051b24 50%,#02070d 100%);
+color:white;
+display:flex;
+justify-content:center;
+}
+
+.container{
+width:min(95vw,550px);
+padding:20px;
+}
+
+/* JUDUL */
+
+.title{
+text-align:center;
+font-size:55px;
+font-weight:900;
+line-height:1;
+margin-bottom:20px;
+
+text-shadow:
+0 0 10px #ff8cff,
+0 0 20px #ff8cff,
+0 0 40px #ff8cff,
+0 0 80px #ff8cff;
+}
+
+/* SCORE */
+
+.top{
+display:flex;
+gap:15px;
+justify-content:center;
+margin-bottom:25px;
+}
+
+.card{
+flex:1;
+max-width:200px;
+
+padding:18px;
+
+border-radius:25px;
+
+background:rgba(255,255,255,.08);
+
+border:2px solid rgba(255,255,255,.12);
+
+box-shadow:
+0 0 10px rgba(255,255,255,.1),
+inset 0 0 10px rgba(255,255,255,.08);
+
+text-align:center;
+}
+
+.card h3{
+color:#ffd94d;
+font-size:24px;
+margin-bottom:8px;
+}
+
+.card p{
+font-size:50px;
+font-weight:bold;
+}
+
+/* TIMER */
+
+.timer{
+text-align:center;
+font-size:45px;
+margin-bottom:20px;
+
+text-shadow:
+0 0 10px #ffb347,
+0 0 20px #ffb347;
+}
+
+/* FRAME NEON */
+
+.game-frame{
+
+border-radius:35px;
+padding:12px;
+
+border:4px solid #00e5ff;
+
+background:#160026;
+
+box-shadow:
+0 0 10px#00e5ff,
+0 0 25px #00e5ff,
+0 0 50px rgba(222,124,255,.8),
+inset 0 0 20px rgba(222,124,255,.5);
+}
+
+.game-board{
+
+border-radius:25px;
+
+background:#22003f;
+
+padding:15px;
+
+min-height:420px;
+
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+/* DEMO AREA */
+
+.placeholder{
+width:100%;
+height:390px;
+
+border-radius:18px;
+
+background:
+linear-gradient(
+45deg,
+rgba(255,255,255,.04),
+rgba(255,255,255,0)
+);
+
+display:flex;
+justify-content:center;
+align-items:center;
+
+font-size:30px;
+font-weight:bold;
+color:#caa2ff;
+}
+
+@media(max-width:600px){
+
+.title{
+font-size:42px;
+}
+
+.card p{
+font-size:38px;
+}
+
+.timer{
+font-size:35px;
+}
+
+}
+.card{
+    flex:1;
+    max-width:200px;
+    padding:15px;
+    border-radius:25px;
+    text-align:center;
+
+    background:rgba(255,255,255,.08);
+
+    border:2px solid rgba(255,255,255,.12);
+}
+
+.card-title{
+    font-size:18px;
+    font-weight:bold;
+    letter-spacing:1px;
+    color:#ffd54f;
+    margin-bottom:8px;
+}
+
+.card-value{
+    font-size:42px;
+    font-weight:900;
+    color:white;
+}
+.start-screen{
+position:fixed;
+inset:0;
+background:#050816;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+padding:20px;
+z-index:9999;
+}
+
+.game-title{
+font-size:50px;
+font-weight:900;
+margin-bottom:15px;
+text-shadow:
+0 0 10px #00ffff,
+0 0 20px #ff00ff,
+0 0 40px #ff00ff;
+}
+
+.tagline{
+font-size:20px;
+margin-bottom:20px;
+max-width:500px;
+}
+
+.how-to-play{
+background:rgba(255,255,255,.08);
+padding:20px;
+border-radius:20px;
+margin-bottom:25px;
+max-width:500px;
+}
+
+.how-to-play h2{
+margin-bottom:10px;
+color:#ffd54f;
+}
+
+.how-to-play p{
+margin:8px 0;
+}
+
+#startBtn{
+padding:15px 40px;
+font-size:24px;
+font-weight:bold;
+border:none;
+border-radius:50px;
+cursor:pointer;
+background:linear-gradient(90deg,#ff00ff,#00ffff);
+color:white;
+}
+#gameGrid{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:6px;
+width:100%;
+max-width:400px;
+margin:auto;
+}
+
+.cell{
+width:100%;
+aspect-ratio:1;
+background:rgba(255,255,255,.1);
+border-radius:12px;
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:28px;
+cursor:pointer;
+}
+.game-over-screen{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.95);
+
+display:none;
+
+flex-direction:column;
+justify-content:center;
+align-items:center;
+
+z-index:10000;
+
+text-align:center;
+}
+
+.game-over-screen h1{
+font-size:70px;
+color:#ff4d4d;
+margin-bottom:20px;
+
+text-shadow:
+0 0 10px #ff4d4d,
+0 0 20px #ff4d4d,
+0 0 40px #ff4d4d;
+}
+
+.final-text{
+font-size:22px;
+color:#ccc;
+margin-top:10px;
+}
+
+#finalScore,
+#finalBest{
+font-size:60px;
+font-weight:bold;
+margin-bottom:15px;
+}
+
+#restartBtn{
+margin-top:25px;
+
+padding:15px 40px;
+
+font-size:24px;
+font-weight:bold;
+
+border:none;
+border-radius:50px;
+
+cursor:pointer;
+
+background:linear-gradient(
+90deg,
+#00e5ff,
+#ff00ff
+);
+
+color:white;
+}
+.selected{
+outline:3px solid yellow;
+box-shadow:0 0 15px yellow;
+transform:scale(1.05);
+}
+
+</style>
+</head>
+<body>
+    <div id="startScreen" class="start-screen">
+
+    <h1 class="game-title">
+        💎 GEM CONNECT LEGENDS 💎
+    </h1>
+
+    <p class="tagline">
+        Match gems, score points, and become a true legend.
+    </p>
+
+    <div class="how-to-play">
+
+        <h2>HOW TO PLAY</h2>
+
+        <p>💎 Match 3 identical gems.</p>
+
+        <p>⭐ Earn 10 points for every successful match.</p>
+
+        <p>⏰ Score as many points as possible within 60 seconds.</p>
+
+        <p>🏆 Beat your High Score and climb the leaderboard.</p>
+
+    </div>
+
+    <button id="startBtn">
+        ▶ START GAME
+    </button>
+
+</div>
+<div id="gameOverScreen" class="game-over-screen">
+
+    <h1>GAME OVER</h1>
+
+    <p class="final-text">YOUR FINAL SCORE</p>
+
+    <div id="finalScore">0</div>
+
+    <p class="final-text">HIGH SCORE</p>
+
+    <div id="finalBest">0</div>
+
+    <button id="restartBtn">
+        🔄 PLAY AGAIN
+    </button>
+
+</div>
+
+<div class="container">
+
+<div class="title">
+    GEM CONNECT LEGENDS
+</div>
+
+<div class="top">
+
+<div class="card">
+    <div class="card-title">🏆 POINTS</div>
+    <div class="card-value" id="score">0</div>
+</div>
+
+<div class="card">
+    <div class="card-title">🔥 HIGH SCORE</div>
+    <div class="card-value" id="best">0</div>
+</div>
+</div>
+
+<div class="timer">
+⏰ Time: <span id="time">17</span>
+</div>
+
+<div class="game-frame">
+
+<div class="game-board">
+
+<div id="gameGrid"></div>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+let time = 60; // timer 60 detik
+let score = 0;
+
+// ambil high score dari localStorage
+let highScore = localStorage.getItem("highScore") || 0;
+
+document.getElementById("best").textContent = highScore;
+document.getElementById("score").textContent = score;
+document.getElementById("time").textContent = time;
+
+let gameOver = true;
+let timer;
+
+// tombol start
+document.getElementById("startBtn").addEventListener("click", () => {
+
+    document.getElementById("startScreen").style.display = "none";
+
+    gameOver = false;
+
+    timer = setInterval(() => {
+
+        if (time > 0) {
+            time--;
+            document.getElementById("time").textContent = time;
+        }
+
+        if (time <= 0) {
+
+            clearInterval(timer);
+
+            gameOver = true;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("highScore", highScore);
+                document.getElementById("best").textContent = highScore;
+            }
+
+            document.getElementById("finalScore").textContent = score;
+
+document.getElementById("finalBest").textContent = highScore;
+
+document.getElementById("gameOverScreen").style.display = "flex";
+        }
+
+    }, 1000);
+
+});
+
+const gems = ["💎","🔮","🔷","🟣","🔶"];
+
+const gameGrid = document.getElementById("gameGrid");
+let selectedGems = [];
+
+for(let i=0;i<25;i++){
+
+    const cell = document.createElement("div");
+    cell.className = "cell";
+
+    cell.textContent =
+        gems[Math.floor(Math.random() * gems.length)];
+
+    cell.addEventListener("click", () => {
+
+        if(gameOver) return;
+
+        if(cell.classList.contains("selected")) return;
+
+        cell.classList.add("selected");
+        selectedGems.push(cell);
+
+        if(selectedGems.length >= 3){
+
+            let sameGem = selectedGems.every(
+                g => g.textContent === selectedGems[0].textContent
+            );
+
+            if(sameGem){
+
+                selectedGems.forEach(g => {
+
+                    g.textContent =
+                        gems[Math.floor(Math.random() * gems.length)];
+
+                    g.classList.remove("selected");
+
+                });
+
+                score += 10;
+                document.getElementById("score").textContent = score;
+
+                // high score realtime
+                if(score > highScore){
+                    highScore = score;
+                    localStorage.setItem("highScore", highScore);
+                    document.getElementById("best").textContent = highScore;
+                }
+
+            } else {
+
+                selectedGems.forEach(g => {
+                    g.classList.remove("selected");
+                });
+
+            }
+
+            selectedGems = [];
+        }
+
+    });
+
+    gameGrid.appendChild(cell);
+}
+
+// Tombol Play Again
+document.getElementById("restartBtn").addEventListener("click", () => {
+    location.reload();
+});
+
+</script>
+
+</body>
+</html>
