@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -205,7 +205,7 @@ z-index:9999;
 }
 
 .game-title{
-font-size:50px;
+font-size:46px;
 font-weight:900;
 margin-bottom:15px;
 text-shadow:
@@ -215,26 +215,44 @@ text-shadow:
 }
 
 .tagline{
-font-size:20px;
+font-size:18px;
 margin-bottom:20px;
 max-width:500px;
+color: #caa2ff;
 }
 
 .how-to-play{
-background:rgba(255,255,255,.08);
+background:rgba(255,255,255,.06);
+border: 1px solid rgba(0, 245, 255, 0.2);
 padding:20px;
 border-radius:20px;
 margin-bottom:25px;
 max-width:500px;
+width: 90%;
+text-align: left;
 }
 
 .how-to-play h2{
-margin-bottom:10px;
+margin-bottom:15px;
 color:#ffd54f;
+font-size: 22px;
+text-align: center;
+letter-spacing: 1px;
 }
 
-.how-to-play p{
-margin:8px 0;
+.how-to-play .step {
+margin-bottom: 12px;
+font-size: 14px;
+line-height: 1.5;
+color: #e0e0ff;
+}
+
+.how-to-play .step:last-child {
+margin-bottom: 0;
+}
+
+.how-to-play b {
+color: #00ffff;
 }
 
 #startBtn{
@@ -246,7 +264,15 @@ border-radius:50px;
 cursor:pointer;
 background:linear-gradient(90deg,#ff00ff,#00ffff);
 color:white;
+box-shadow: 0 0 15px #ff00ff;
+transition: 0.2s;
 }
+
+#startBtn:hover {
+transform: scale(1.05);
+box-shadow: 0 0 25px #00ffff;
+}
+
 #gameGrid{
 display:grid;
 grid-template-columns:repeat(5,1fr);
@@ -266,7 +292,14 @@ justify-content:center;
 align-items:center;
 font-size:28px;
 cursor:pointer;
+transition: 0.15s;
 }
+
+.cell:hover {
+background: rgba(255,255,255,.2);
+transform: scale(1.02);
+}
+
 .game-over-screen{
 position:fixed;
 inset:0;
@@ -327,7 +360,15 @@ background:linear-gradient(
 );
 
 color:white;
+box-shadow: 0 0 15px #00e5ff;
+transition: 0.2s;
 }
+
+#restartBtn:hover{
+transform: scale(1.05);
+box-shadow: 0 0 25px #ff00ff;
+}
+
 .selected{
 outline:3px solid yellow;
 box-shadow:0 0 15px yellow;
@@ -344,20 +385,29 @@ transform:scale(1.05);
     </h1>
 
     <p class="tagline">
-        Match gems, score points, and become a true legend.
+        Match magic gems, rack up big scores, and become a puzzle legend.
     </p>
 
+    <!-- MANUAL INSTRUCTION FOR USERS (FULL ENGLISH) -->
     <div class="how-to-play">
 
-        <h2>HOW TO PLAY</h2>
+        <h2>🎮 HOW TO PLAY MANUAL</h2>
 
-        <p>💎 Match 3 identical gems.</p>
+        <div class="step">
+            <b>1. Selection:</b> Click or tap on any cell on the grid to select a gem. The chosen gem will be highlighted with a yellow border.
+        </div>
 
-        <p>⭐ Earn 10 points for every successful match.</p>
+        <div class="step">
+            <b>2. Match-3 Mechanic:</b> Select exactly <b>3 identical gems</b> from anywhere on the board. They do not need to be adjacent or connected in a straight line.
+        </div>
 
-        <p>⏰ Score as many points as possible within 60 seconds.</p>
+        <div class="step">
+            <b>3. Scoring System:</b> Successfully matching 3 identical gems will clear them from the board, yield new random gems, and award you <b>+10 points</b>. Selecting mismatched gems will reset your current selection.
+        </div>
 
-        <p>🏆 Beat your High Score and climb the leaderboard.</p>
+        <div class="step">
+            <b>4. Time Constraint:</b> You only have a strict limit of <b>60 seconds</b> to complete matches. Think fast, clear boards rapidly, and defeat your personal High Score before the countdown hits zero!
+        </div>
 
     </div>
 
@@ -404,7 +454,7 @@ transform:scale(1.05);
 </div>
 
 <div class="timer">
-⏰ Time: <span id="time">17</span>
+⏰ Time: <span id="time">60</span>
 </div>
 
 <div class="game-frame">
@@ -423,10 +473,9 @@ transform:scale(1.05);
 
 <script>
 
-let time = 60; // timer 60 detik
+let time = 60; 
 let score = 0;
 
-// ambil high score dari localStorage
 let highScore = localStorage.getItem("highScore") || 0;
 
 document.getElementById("best").textContent = highScore;
@@ -436,24 +485,16 @@ document.getElementById("time").textContent = time;
 let gameOver = true;
 let timer;
 
-// tombol start
-document.getElementById("startBtn").addEventListener("click", () => {
-
-    document.getElementById("startScreen").style.display = "none";
-
-    gameOver = false;
-
+// Fungsi untuk memulai timer dan gameplay
+function startTimer() {
     timer = setInterval(() => {
-
         if (time > 0) {
             time--;
             document.getElementById("time").textContent = time;
         }
 
         if (time <= 0) {
-
             clearInterval(timer);
-
             gameOver = true;
 
             if (score > highScore) {
@@ -463,14 +504,17 @@ document.getElementById("startBtn").addEventListener("click", () => {
             }
 
             document.getElementById("finalScore").textContent = score;
-
-document.getElementById("finalBest").textContent = highScore;
-
-document.getElementById("gameOverScreen").style.display = "flex";
+            document.getElementById("finalBest").textContent = highScore;
+            document.getElementById("gameOverScreen").style.display = "flex";
         }
-
     }, 1000);
+}
 
+// tombol start menu depan
+document.getElementById("startBtn").addEventListener("click", () => {
+    document.getElementById("startScreen").style.display = "none";
+    gameOver = false;
+    startTimer();
 });
 
 const gems = ["💎","🔮","🔷","🟣","🔶"];
@@ -478,6 +522,7 @@ const gems = ["💎","🔮","🔷","🟣","🔶"];
 const gameGrid = document.getElementById("gameGrid");
 let selectedGems = [];
 
+// Generate Grid Sel Game
 for(let i=0;i<25;i++){
 
     const cell = document.createElement("div");
@@ -504,18 +549,14 @@ for(let i=0;i<25;i++){
             if(sameGem){
 
                 selectedGems.forEach(g => {
-
                     g.textContent =
                         gems[Math.floor(Math.random() * gems.length)];
-
                     g.classList.remove("selected");
-
                 });
 
                 score += 10;
                 document.getElementById("score").textContent = score;
 
-                // high score realtime
                 if(score > highScore){
                     highScore = score;
                     localStorage.setItem("highScore", highScore);
@@ -523,11 +564,9 @@ for(let i=0;i<25;i++){
                 }
 
             } else {
-
                 selectedGems.forEach(g => {
                     g.classList.remove("selected");
                 });
-
             }
 
             selectedGems = [];
@@ -538,9 +577,30 @@ for(let i=0;i<25;i++){
     gameGrid.appendChild(cell);
 }
 
-// Tombol Play Again
+// Perbaikan Tombol Play Again (Reset real-time tanpa reload lambat)
 document.getElementById("restartBtn").addEventListener("click", () => {
-    location.reload();
+    // 1. Reset variable data game
+    time = 60;
+    score = 0;
+    gameOver = false;
+    selectedGems = [];
+
+    // 2. Bersihkan semua seleksi kuning sisa game sebelumnya
+    const allCells = document.querySelectorAll(".cell");
+    allCells.forEach(cell => {
+        cell.classList.remove("selected");
+        // Mengacak ulang isi grid agar terasa seperti sesi baru
+        cell.textContent = gems[Math.floor(Math.random() * gems.length)];
+    });
+
+    // 3. Update tampilan teks HUD
+    document.getElementById("score").textContent = score;
+    document.getElementById("time").textContent = time;
+
+    // 4. Tutup layar game over dan mulai ulang timer
+    document.getElementById("gameOverScreen").style.display = "none";
+    clearInterval(timer);
+    startTimer();
 });
 
 </script>
