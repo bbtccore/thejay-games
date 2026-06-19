@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Abyssal Harpooner: Megalodon Wrath</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: #010206;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            color: #fff;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1 / 1; 
+            box-shadow: 0 0 60px rgba(6, 182, 212, 0.3);
+            border: 2px solid rgba(14, 116, 144, 0.5);
+            background: #010612;
+            overflow: hidden;
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+        
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(1, 5, 15, 0.97);
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; 
+            padding: 15px; text-align: center; z-index: 10;
+        }
+        .hidden { display: none !important; }
+        
+        .title-area { margin-bottom: 10px; flex-shrink: 0; }
+        h1 {
+            font-size: 22px; text-transform: uppercase; letter-spacing: 2px;
+            background: linear-gradient(180deg, #38bdf8, #0ea5e9);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        
+        .guide-box {
+            background: rgba(14, 165, 233, 0.02); border: 1px solid rgba(14, 116, 144, 0.5);
+            border-radius: 12px; padding: 10px 14px; text-align: left; width: 100%; max-width: 480px;
+            margin-bottom: 15px; overflow-y: auto; max-height: 60%;
+        }
+        .guide-title { font-size: 11px; font-weight: bold; color: #38bdf8; margin-bottom: 5px; text-transform: uppercase; border-bottom: 1px solid rgba(14, 116, 144, 0.3); padding-bottom: 4px; }
+        .guide-item { display: flex; align-items: flex-start; margin-bottom: 4px; font-size: 11px; color: #94a3b8; line-height: 1.35; }
+        .bullet { width: 5px; height: 5px; border-radius: 50%; margin-right: 8px; margin-top: 5px; flex-shrink: 0; background: #22d3ee; }
+        
+        .btn {
+            background: linear-gradient(180deg, rgba(14, 165, 233, 0.2), rgba(3, 105, 161, 0.2));
+            border: 2px solid #0ea5e9; color: #38bdf8; padding: 10px 40px; font-size: 11px;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 2px; border-radius: 30px; cursor: pointer; flex-shrink: 0;
+        }
+        .btn:hover { background: #0ea5e9; color: #010206; box-shadow: 0 0 30px rgba(14, 165, 233, 0.6); }
+        
+        #ult-button {
+            position: absolute; bottom: 20px; right: 20px; width: 54px; height: 54px; border-radius: 50%;
+            background: rgba(15, 23, 42, 0.8); border: 2px solid #64748b; color: #64748b; font-weight: bold; font-size: 11px;
+            display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 5; user-select: none; transition: all 0.2s ease;
+        }
+        #ult-button.ready {
+            border-color: #22d3ee; color: #22d3ee; background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(14, 116, 144, 0.3));
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.5); animation: pulseGlow 1.5s infinite alternate;
+        }
+        @keyframes pulseGlow {
+            0% { transform: scale(1); box-shadow: 0 0 10px rgba(34, 211, 238, 0.4); }
+            100% { transform: scale(1.06); box-shadow: 0 0 22px rgba(34, 211, 238, 0.8); }
+        }
+        .game-over-title { background: linear-gradient(180deg, #ef4444, #b91c1c); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .winner-title { background: linear-gradient(180deg, #fbbf24, #d97706); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 25px rgba(251, 191, 36, 0.4); }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ult-button" onclick="triggerUltimate(event)">⚡ ULT</div>
+
+    <div id="menu-screen" class="overlay">
+        <div class="title-area">
+            <h1>Megalodon: Abyssal Wrath</h1>
+            <div style="color: #0ea5e9; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Extreme Survival Edition</div>
+        </div>
+        
+        <div class="guide-box">
+            <div class="guide-title">Tactical Operations Manual</div>
+            <div class="guide-item"><div class="bullet"></div><span><b>Movement:</b> Press <b>A / D</b> or <b>Arrow Keys</b> to steer your vessel.</span></div>
+            <div class="guide-item"><div class="bullet"></div><span><b>Primary Weapon:</b> Tap <b>SPACEBAR</b> to deploy a triple harpoon volley.</span></div>
+            <div class="guide-item"><div class="bullet"></div><span><b>⚡ Ultimate Shockwave:</b> Each kill secures <b>+10% Energy</b>. At 100%, click the <b>⚡ ULT</b> button on the bottom right or press <b>LEFT SHIFT</b> (PC) to discharge a massive screen-clearing lightning storm!</span></div>
+            <div class="guide-item"><div class="bullet"></div><span><b>Abyssal Ecosystem:</b> Face off against bioluminescent squids, armored prehistoric nautiluses, and the apex predator Megalodon!</span></div>
+            <div class="guide-item"><div class="bullet"></div><span><b>Mission Directive:</b> Eradicate the Megalodon and accumulate <b>400 Points</b>.</span></div>
+        </div>
+        <button class="btn" onclick="startGame()">Submerge Vessel</button>
+    </div>
+
+    <div id="game-over-screen" class="overlay hidden">
+        <h1 class="game-over-title" style="margin-bottom: 10px;">Hull Compromised</h1>
+        <p style="color: #64748b; font-size: 13px; margin-bottom: 15px;">Your submarine collapsed under heavy deep-sea pressure.</p>
+        <h2 style="font-size: 24px; color: #38bdf8; margin-bottom: 20px;">Final Score: <span id="final-score">0</span></h2>
+        <button class="btn" onclick="startGame()">Redeploy Sub</button>
+    </div>
+
+    <div id="winner-screen" class="overlay hidden">
+        <h1 class="winner-title" style="margin-bottom: 10px;">Apex Predator Slain</h1>
+        <p style="color: #a7f3d0; font-size: 13px; margin-bottom: 15px;">The Megalodon has been destroyed! You have conquered the abyss.</p>
+        <h2 style="font-size: 28px; color: #fbbf24; margin-bottom: 20px;">Victory Achieved!</h2>
+        <button class="btn" onclick="startGame()">Replay Mission</button>
+    </div>
+
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const ultButton = document.getElementById("ult-button");
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playLaserSound() {
+    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'triangle'; osc.frequency.setValueAtTime(440, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.04, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.08);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+}
+function playExplodeSound() {
+    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(1, audioCtx.currentTime + 0.22);
+    gain.gain.setValueAtTime(0.18, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.22);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.22);
+}
+function playUltimateSound() {
+    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(600, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.6);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.6);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+}
+
+let gameRunning = false, score = 0, energy = 0;
+let harpoons = [], enemyProjectiles = [], enemies = [], bubbles = [], particles = [], lightningLines = [];
+let spawnTimer = 0, lightWaveOffset = 0, ultActiveFrame = 0;
+let lastTime = 0;
+
+let sub = { x: 265, y: 510, width: 70, height: 35, speed: 390 }; 
+let boss = { active: false, x: 150, y: -220, width: 280, height: 180, hp: 280, maxHp: 280, direction: 1, speed: 220, shootTimer: 0 };
+
+for(let i=0; i<45; i++) {
+    bubbles.push({ x: Math.random()*600, y: Math.random()*600, size: Math.random()*3 + 1, speed: Math.random()*90 + 30 });
+}
+
+window.addEventListener("keydown", (e) => {
+    if(!gameRunning) return;
+    if(e.key === "ArrowLeft" || e.key.toLowerCase() === "a") sub.movingLeft = true;
+    if(e.key === "ArrowRight" || e.key.toLowerCase() === "d") sub.movingRight = true;
+    if(e.key === " ") fireTripleHarpoon();
+    if(e.key === "Shift") triggerUltimate();
+});
+window.addEventListener("keyup", (e) => {
+    if(e.key === "ArrowLeft" || e.key.toLowerCase() === "a") sub.movingLeft = false;
+    if(e.key === "ArrowRight" || e.key.toLowerCase() === "d") sub.movingRight = false;
+});
+
+canvas.addEventListener("touchstart", (e) => {
+    if(!gameRunning) return;
+    const rect = canvas.getBoundingClientRect();
+    const touchX = ((e.touches[0].clientX - rect.left) / rect.width) * 600;
+    if(touchX < 300) { sub.movingLeft = true; sub.movingRight = false; }
+    else { sub.movingRight = true; sub.movingLeft = false; }
+    fireTripleHarpoon();
+}, {passive: true});
+canvas.addEventListener("touchend", () => { sub.movingLeft = false; sub.movingRight = false; });
+
+function fireTripleHarpoon() {
+    let sX = sub.x + sub.width / 2, sY = sub.y;
+    harpoons.push({ x: sX, y: sY, vx: 0, vy: -570 });
+    harpoons.push({ x: sX, y: sY, vx: -132, vy: -540 });
+    harpoons.push({ x: sX, y: sY, vx: 132, vy: -540 });
+    playLaserSound();
+}
+
+function triggerUltimate(e) {
+    if(e) e.stopPropagation(); 
+    if(energy < 100 || !gameRunning) return;
+    energy = 0; ultActiveFrame = 25;
+    ultButton.classList.remove("ready");
+    playUltimateSound();
+    
+    lightningLines = [];
+    for(let i=0; i<24; i++) {
+        lightningLines.push({ tX: Math.random()*600, tY: Math.random()*500 });
+    }
+
+    enemies.forEach(e => triggerExplosion(e.x + e.width/2, e.y + e.height/2, e.color));
+    score += enemies.length * 5;
+    enemies = [];
+
+    if(boss.active) { boss.hp -= 50; triggerExplosion(boss.x + boss.width/2, boss.y + boss.height/2, "#22d3ee"); }
+}
+
+class Splash {
+    constructor(x, y, color) {
+        this.x = x; this.y = y; this.radius = Math.random()*4 + 1.5;
+        this.sX = (Math.random() - 0.5)*420; this.sY = (Math.random() - 0.5)*420;
+        this.color = color; this.alpha = 1;
+    }
+    update(dt) { this.x += this.sX * dt; this.y += this.sY * dt; this.alpha -= 2.1 * dt; }
+    draw() {
+        ctx.save(); ctx.globalAlpha = Math.max(0, this.alpha); ctx.fillStyle = this.color;
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    }
+}
+
+function triggerExplosion(x, y, color = "#22d3ee") {
+    playExplodeSound();
+    for(let i=0; i<15; i++) particles.push(new Splash(x, y, color));
+}
+
+function startGame() {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    document.getElementById("menu-screen").classList.add("hidden");
+    document.getElementById("game-over-screen").classList.add("hidden");
+    document.getElementById("winner-screen").classList.add("hidden");
+    score = 0; energy = 0; harpoons = []; enemies = []; enemyProjectiles = []; particles = [];
+    sub.x = 265; boss.active = false; boss.y = -220; boss.hp = boss.maxHp;
+    ultButton.classList.remove("ready");
+    gameRunning = true;
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+}
+
+function gameLoop(timestamp) {
+    if(!gameRunning) return;
+    let dt = (timestamp - lastTime) / 1000;
+    if (dt > 0.1) dt = 0.1; 
+    lastTime = timestamp;
+
+    update(dt);
+    requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let seaGrad = ctx.createLinearGradient(0, 0, 0, 600);
+    seaGrad.addColorStop(0, "#010e24"); seaGrad.addColorStop(0.6, "#000511"); seaGrad.addColorStop(1, "#000002");
+    ctx.fillStyle = seaGrad; ctx.fillRect(0, 0, 600, 600);
+
+    lightWaveOffset += 0.9 * dt;
+    ctx.fillStyle = "rgba(14, 165, 233, 0.03)";
+    for(let i=0; i<3; i++) {
+        let shift = Math.sin(lightWaveOffset + i) * 25;
+        ctx.beginPath(); ctx.moveTo(100 + (i*160) + shift, 0); ctx.lineTo(160 + (i*180) + shift, 600);
+        ctx.lineTo(260 + (i*180) + shift, 600); ctx.lineTo(200 + (i*160) + shift, 0); ctx.closePath(); ctx.fill();
+    }
+
+    ctx.fillStyle = "rgba(56, 189, 248, 0.2)";
+    bubbles.forEach(b => {
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
+        b.y -= b.speed * dt; if(b.y < -10) { b.y = 610; b.x = Math.random() * 600; }
+    });
+
+    if(sub.movingLeft && sub.x > 8) sub.x -= sub.speed * dt;
+    if(sub.movingRight && sub.x < 600 - sub.width - 8) sub.x += sub.speed * dt;
+    
+    ctx.save();
+    let propAngle = (Date.now() / 40) % (Math.PI * 2);
+    ctx.translate(sub.x - 4, sub.y + sub.height/2); ctx.rotate(propAngle);
+    ctx.strokeStyle = "#475569"; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 12); ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    let subGrad = ctx.createLinearGradient(sub.x, sub.y, sub.x, sub.y + sub.height);
+    subGrad.addColorStop(0, "#38bdf8"); subGrad.addColorStop(0.5, "#0ea5e9"); subGrad.addColorStop(1, "#0369a1");
+    ctx.fillStyle = subGrad; ctx.shadowBlur = 12; ctx.shadowColor = "#22d3ee";
+    ctx.beginPath(); ctx.ellipse(sub.x + sub.width/2, sub.y + sub.height/2, sub.width/2, sub.height/2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#0284c7"; ctx.fillRect(sub.x + sub.width/2 - 7, sub.y - 7, 14, 9);
+    ctx.fillStyle = "#e0f2fe";
+    for(let i=0; i<3; i++) { ctx.beginPath(); ctx.arc(sub.x + 22 + (i*14), sub.y + sub.height/2, 3, 0, Math.PI*2); ctx.fill(); }
+    ctx.restore();
+
+    if(score >= 400) { gameRunning = false; document.getElementById("winner-screen").classList.remove("hidden"); return; }
+    if(score >= 200 && !boss.active) { boss.active = true; enemies = []; }
+
+    if(!boss.active) {
+        spawnTimer += 60 * dt;
+        let rate = Math.max(8, 28 - (score/14));
+        if(spawnTimer > rate) {
+            let typeRand = Math.random();
+            let eObj = { x: Math.random()*530 + 15, y: -50, width: 36, height: 50, speed: 130, type: 'squid', color: '#10b981', waveSeed: Math.random()*10 };
+            
+            if(typeRand > 0.75) { 
+                eObj.type = 'poison'; eObj.color = '#ec4899'; eObj.speed = 165;
+            } else if(typeRand > 0.45) { 
+                eObj.type = 'armored'; eObj.color = '#f59e0b'; eObj.speed = 280; eObj.width = 46; eObj.height = 46;
+            }
+            enemies.push(eObj); spawnTimer = 0;
+        }
+    }
+
+    for(let i = enemies.length - 1; i >= 0; i--) {
+        let e = enemies[i];
+        e.y += e.speed * dt;
+        
+        if(e.type === 'poison') { 
+            e.x += Math.sin((Date.now()/70) + e.waveSeed) * 180 * dt;
+        }
+
+        ctx.save();
+        if(e.type === 'armored') { 
+            let bGrad = ctx.createRadialGradient(e.x + e.width/2, e.y + e.height/2, 2, e.x + e.width/2, e.y + e.height/2, e.width/2);
+            bGrad.addColorStop(0, "#fef3c7"); bGrad.addColorStop(0.5, "#d97706"); bGrad.addColorStop(1, "#78350f");
+            ctx.fillStyle = bGrad;
+            ctx.beginPath(); ctx.arc(e.x + e.width/2, e.y + e.height/2 - 4, e.width/2, 0, Math.PI*2); ctx.fill();
+
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.3)"; ctx.lineWidth = 2.5;
+            for(let r=0; r<5; r++) {
+                ctx.beginPath(); ctx.arc(e.x + e.width/2, e.y + e.height/2 - 4, (e.width/2) - (r*4), 0, Math.PI, false); ctx.stroke();
+            }
+            ctx.fillStyle = "#f59e0b";
+            for(let t=0; t<5; t++) {
+                let tShift = Math.sin(Date.now()/25 + t) * 4;
+                ctx.fillRect(e.x + 8 + (t*6), e.y + e.height - 10, 3, 12 + tShift);
+            }
+        } else { 
+            let bodyGrad = ctx.createLinearGradient(e.x, e.y, e.x, e.y + e.height);
+            if(e.type === 'poison') {
+                bodyGrad.addColorStop(0, "#f472b6"); bodyGrad.addColorStop(0.6, "#db2777"); bodyGrad.addColorStop(1, "#4c0519");
+            } else {
+                bodyGrad.addColorStop(0, "#34d399"); bodyGrad.addColorStop(0.6, "#059669"); bodyGrad.addColorStop(1, "#064e3b");
+            }
+            ctx.fillStyle = bodyGrad;
+
+            ctx.beginPath(); ctx.moveTo(e.x + e.width/2, e.y); ctx.lineTo(e.x - 6, e.y + 12); ctx.lineTo(e.x + e.width + 6, e.y + 12); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(e.x + e.width/2, e.y + 20, e.width/2, 16, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillRect(e.x, e.y + 20, e.width, 14);
+
+            ctx.fillStyle = e.type === 'poison' ? "#9d174d" : "#047857";
+            for(let t=0; t<6; t++) {
+                let tWave = Math.sin((Date.now()/55) + t + e.waveSeed) * 7;
+                ctx.beginPath(); ctx.moveTo(e.x + 3 + (t*6), e.y + 32);
+                ctx.quadraticCurveTo(e.x + 3 + (t*6) + tWave, e.y + 44, e.x + 3 + (t*6) + (tWave*0.5), e.y + e.height);
+                ctx.lineWidth = 2.5; ctx.strokeStyle = ctx.fillStyle; ctx.stroke();
+            }
+
+            ctx.fillStyle = "#000000";
+            ctx.beginPath(); ctx.arc(e.x + 9, e.y + 25, 4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(e.x + e.width - 9, e.y + 25, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = e.type === 'poison' ? "#ff00ea" : "#00ffcc";
+            ctx.fillRect(e.x + 6, e.y + 24, 6, 2); ctx.fillRect(e.x + e.width - 12, e.y + 24, 6, 2);
+        }
+        ctx.restore();
+
+        if(e.x < sub.x + sub.width && e.x + e.width > sub.x && e.y < sub.y + sub.height && e.y + e.height > sub.y) { gameRunning = false; document.getElementById("final-score").innerText = score; document.getElementById("game-over-screen").classList.remove("hidden"); return; }
+
+        for(let j = harpoons.length - 1; j >= 0; j--) {
+            if(harpoons[j].x > e.x && harpoons[j].x < e.x + e.width && harpoons[j].y > e.y && harpoons[j].y < e.y + e.height) {
+                triggerExplosion(e.x + e.width/2, e.y + e.height/2, e.color);
+                enemies.splice(i, 1); harpoons.splice(j, 1);
+                score += 5; 
+                if(energy < 100) {
+                    energy += 10;
+                    if(energy >= 100) ultButton.classList.add("ready");
+                }
+                break;
+            }
+        }
+        if(enemies[i] && e.y > 620) enemies.splice(i, 1);
+    }
+
+    if(boss.active) {
+        if(boss.y < 40) boss.y += 72 * dt;
+        boss.x += boss.speed * boss.direction * dt;
+        if(boss.x <= 15 || boss.x >= 600 - boss.width - 15) boss.direction *= -1;
+
+        let bX = boss.x, bY = boss.y, bW = boss.width, bH = boss.height;
+        ctx.save();
+        
+        let sharkGrad = ctx.createLinearGradient(bX, bY, bX, bY + bH);
+        sharkGrad.addColorStop(0, "#475569"); sharkGrad.addColorStop(0.3, "#334155"); sharkGrad.addColorStop(0.7, "#1e293b"); sharkGrad.addColorStop(0.9, "#64748b"); sharkGrad.addColorStop(1, "#cbd5e1");
+        ctx.fillStyle = sharkGrad; ctx.shadowBlur = 40; ctx.shadowColor = "rgba(239, 68, 68, 0.4)";
+        
+        ctx.beginPath(); ctx.moveTo(bX + bW/2, bY + bH);
+        ctx.bezierCurveTo(bX + bW, bY + (bH*2)/3, bX + bW - 10, bY + 40, bX + bW/2 + 24, bY); 
+        ctx.lineTo(bX + bW/2 - 24, bY);
+        ctx.bezierCurveTo(bX + 10, bY + 40, bX, bY + (bH*2)/3, bX + bW/2, bY + bH); 
+        ctx.closePath(); ctx.fill();
+
+        ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 2.5;
+        for(let g=0; g<4; g++) {
+            ctx.beginPath(); ctx.arc(bX + 35, bY + (bH*2)/3 - (g*7), 12, Math.PI*1.2, Math.PI*1.7); ctx.stroke();
+            ctx.beginPath(); ctx.arc(bX + bW - 35, bY + (bH*2)/3 - (g*7), 12, Math.PI*1.3, Math.PI*1.8, true); ctx.stroke();
+        }
+
+        let tailWave = Math.sin(Date.now() / 65) * 25;
+        ctx.fillStyle = "#334155";
+        ctx.beginPath(); ctx.moveTo(bX + bW/2 - 12, bY + 10); ctx.lineTo(bX + bW/2 + tailWave, bY - 50); ctx.lineTo(bX + bW/2 + (tailWave*0.3), bY - 12); ctx.lineTo(bX + bW/2 + tailWave - 14, bY - 38); ctx.closePath(); ctx.fill();
+
+        ctx.beginPath(); ctx.moveTo(bX + 32, bY + 90); ctx.lineTo(bX - 50, bY + 50); ctx.lineTo(bX + 25, bY + 120); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(bX + bW - 32, bY + 90); ctx.lineTo(bX + bW + 50, bY + 50); ctx.lineTo(bX + bW - 25, bY + 120); ctx.closePath(); ctx.fill();
+
+        ctx.fillStyle = "#ffffff"; 
+        for(let d=0; d<7; d++) {
+            ctx.beginPath(); ctx.moveTo(bX + bW/2 - 35 + (d*10), bY + bH - 15); ctx.lineTo(bX + bW/2 - 30 + (d*10), bY + bH - 3); ctx.lineTo(bX + bW/2 - 25 + (d*10), bY + bH - 15); ctx.closePath(); ctx.fill();
+        }
+
+        ctx.fillStyle = "#ff0000"; ctx.shadowColor = "#ff0000"; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(bX + bW/2 - 42, bY + bH - 36, 7, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(bX + bW/2 + 42, bY + bH - 36, 7, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+
+        boss.shootTimer += 60 * dt;
+        if(boss.shootTimer > 40) {
+            enemyProjectiles.push({ x: bX + bW/2, y: bY + bH - 20, vx: 0, vy: 300 });
+            enemyProjectiles.push({ x: bX + bW/2, y: bY + bH - 20, vx: -108, vy: 270 });
+            enemyProjectiles.push({ x: bX + bW/2, y: bY + bH - 20, vx: 108, vy: 270 });
+            boss.shootTimer = 0;
+        }
+
+        ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; ctx.fillRect(150, 45, 300, 14);
+        ctx.fillStyle = "#ef4444"; ctx.fillRect(150, 45, (boss.hp / boss.maxHp) * 300, 14);
+        ctx.strokeStyle = "#f87171"; ctx.strokeRect(150, 45, 300, 14);
+        ctx.fillStyle = "#fff"; ctx.font = "bold 9px sans-serif"; ctx.fillText("APEX TITAN: MEGALODON", 248, 55);
+
+        if(sub.x < bX + bW && sub.x + sub.width > bX && sub.y < bY + bH && sub.y + sub.height > bY) { gameRunning = false; document.getElementById("final-score").innerText = score; document.getElementById("game-over-screen").classList.remove("hidden"); return; }
+    }
+
+    for(let i = enemyProjectiles.length - 1; i >= 0; i--) {
+        let ep = enemyProjectiles[i];
+        ep.x += ep.vx * dt; ep.y += ep.vy * dt;
+        ctx.save(); ctx.fillStyle = "#ef4444"; ctx.shadowBlur = 15; ctx.shadowColor = "#f87171";
+        ctx.beginPath(); ctx.arc(ep.x, ep.y, 6, 0, Math.PI*2); ctx.fill(); ctx.restore();
+
+        if(ep.x > sub.x && ep.x < sub.x + sub.width && ep.y > sub.y && ep.y < sub.y + sub.height) { gameRunning = false; document.getElementById("final-score").innerText = score; document.getElementById("game-over-screen").classList.remove("hidden"); return; }
+        if(ep.y > 620 || ep.x < -10 || ep.x > 610) enemyProjectiles.splice(i, 1);
+    }
+
+    for(let i = harpoons.length - 1; i >= 0; i--) {
+        harpoons[i].x += harpoons[i].vx * dt; harpoons[i].y += harpoons[i].vy * dt;
+        ctx.save(); ctx.strokeStyle = "#22d3ee"; ctx.lineWidth = 3; ctx.shadowBlur = 8; ctx.shadowColor = "#06b6d4";
+        ctx.beginPath(); ctx.moveTo(harpoons[i].x, harpoons[i].y); ctx.lineTo(harpoons[i].x - harpoons[i].vx * dt, harpoons[i].y + 10); ctx.stroke(); ctx.restore();
+
+        if(boss.active && harpoons[i].x > boss.x && harpoons[i].x < boss.x + boss.width && harpoons[i].y > boss.y && harpoons[i].y < boss.y + boss.height) {
+            boss.hp -= 2.5; triggerExplosion(harpoons[i].x, harpoons[i].y, "#ef4444"); harpoons.splice(i, 1);
+            if(boss.hp <= 0) { score = 400; boss.active = false; }
+            continue;
+        }
+        if(harpoons[i] && (harpoons[i].y < -20 || harpoons[i].x < -20 || harpoons[i].x > 620)) harpoons.splice(i, 1);
+    }
+
+    if(ultActiveFrame > 0) {
+        ultActiveFrame--;
+        ctx.save();
+        ctx.strokeStyle = "#22d3ee"; ctx.lineWidth = Math.random()*5 + 2; ctx.shadowBlur = 30; ctx.shadowColor = "#00ffff";
+        lightningLines.forEach(l => {
+            ctx.beginPath(); ctx.moveTo(sub.x + sub.width/2, sub.y);
+            let midX = (sub.x + sub.width/2 + l.tX) / 2 + (Math.random()-0.5)*40;
+            let midY = (sub.y + l.tY) / 2 + (Math.random()-0.5)*40;
+            ctx.lineTo(midX, midY); ctx.lineTo(l.tX, l.tY); ctx.stroke();
+        });
+        ctx.restore();
+    }
+
+    for(let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update(dt); particles[i].draw(); if(particles[i].alpha <= 0) particles.splice(i, 1);
+    }
+
+    ctx.fillStyle = "rgba(1, 10, 28, 0.85)"; ctx.fillRect(20, 15, 120, 42);
+    ctx.strokeStyle = "rgba(6, 182, 212, 0.5)"; ctx.strokeRect(20, 15, 120, 42);
+    ctx.fillStyle = "#ffffff"; ctx.font = "bold 11px sans-serif";
+    ctx.fillText("SCORE: " + score + "/400", 32, 32);
+
+    ctx.fillStyle = energy >= 100 ? "#22d3ee" : "#64748b"; ctx.font = "9px sans-serif";
+    ctx.fillText("ULT ENERGY: " + energy + "%", 32, 48);
+    if(energy >= 100) {
+        ctx.fillStyle = "rgba(34, 211, 238, " + (Math.sin(Date.now()/80)*0.3 + 0.4) + ")";
+        ctx.fillText("READY", 96, 48);
+    }
+}
+</script>
+</body>
+</html>
