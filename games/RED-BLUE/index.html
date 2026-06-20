@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>JAY NETWORK - RED BLUE</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0; background: #0c0f1d;
+            overflow: hidden; display: flex; justify-content: center; align-items: center;
+            height: 100vh; color: white; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+        }
+
+        #gameContainer {
+            position: relative; width: 100%; max-width: 430px; height: 100%; max-height: 850px;
+            background: linear-gradient(180deg, #1a0b2e 0%, #0d0614 100%);
+            border: 3px solid #5a2d9c; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+            border-radius: 16px;
+        }
+
+        /* Top Header JAY NETWORK */
+        #gameeHeader {
+            position: absolute; top: 0; left: 0; width: 100%; height: 50px;
+            background-color: #0d0614; display: flex; align-items: center;
+            justify-content: center; padding: 0 20px; box-sizing: border-box; z-index: 5;
+            border-bottom: 2px solid #5a2d9c;
+        }
+        .header-center { font-size: 18px; font-weight: 900; letter-spacing: 1.5px; font-family: 'Segoe UI', sans-serif; color: #b388ff; text-shadow: 0 0 10px rgba(179,136,255,0.6); }
+
+        /* Score Display */
+        #scoreContainer {
+            position: absolute; top: 65px; left: 0; width: 100%;
+            display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 4;
+        }
+        .score-title { font-size: 11px; color: #a5a1b8; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+        .score-val { font-size: 36px; font-weight: 900; color: #ffffff; text-shadow: 0 0 10px rgba(179,136,255,0.4); }
+
+        canvas { display: block; position: absolute; top: 50px; left: 0; }
+
+        /* Bottom Control Panel */
+        #controlPanel {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 120px;
+            background-color: #13091f; border-top: 3px solid #5a2d9c;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 30px; box-sizing: border-box; z-index: 5;
+        }
+        .color-btn {
+            width: 60px; height: 60px; border: 3px solid #0d0614; cursor: pointer;
+            border-radius: 50%; position: relative;
+            box-shadow: 0 6px 0 #0d0614, 0 4px 15px rgba(0,0,0,0.4); transition: all 0.1s;
+        }
+        .color-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #0d0614; }
+        
+        #btnBlue { 
+            background: linear-gradient(135deg, #00d2ff 0%, #0066ff 100%); 
+            border-color: #ffffff;
+        }
+        #btnRed { 
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            border-color: #ffffff;
+        }
+        
+        #sliderTrack {
+            flex-grow: 1; margin: 0 20px; height: 20px; background-color: #0d0614;
+            border: 2px solid #5a2d9c; border-radius: 10px; position: relative; overflow: hidden;
+        }
+        #sliderFill {
+            height: 100%; width: 50%; 
+            background: linear-gradient(to right, #b388ff, #00f2fe);
+            border-radius: 10px;
+            transition: width 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Menu / Game Over Overlay */
+        #overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(13, 6, 20, 0.97);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10; padding: 30px; text-align: center;
+        }
+        #overlay h1 { font-size: 38px; font-weight: 900; margin: 0 0 10px 0; letter-spacing: 2px; }
+        .title-menu { color: #b388ff; text-shadow: 0 0 15px rgba(179,136,255,0.6); }
+        .title-gameover { color: #ff3366; text-shadow: 0 0 15px rgba(255,51,102,0.6); }
+        
+        /* Instructions Panel */
+        #instructions {
+            background: rgba(90, 45, 156, 0.1); border: 2px solid #5a2d9c;
+            border-radius: 14px; padding: 18px; width: 100%; max-width: 340px;
+            text-align: left; margin-bottom: 25px; font-size: 13px; line-height: 1.6; color: #e2daf0;
+            box-shadow: inset 0 0 10px rgba(90,45,156,0.2);
+        }
+        #instructions h3 { margin: 0 0 10px 0; color: #ffff00; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; text-align: center; border-bottom: 1px solid rgba(90,45,156,0.4); padding-bottom: 6px;}
+        #instructions ul { margin: 0; padding-left: 18px; }
+        #instructions li { margin-bottom: 8px; }
+        #instructions li b { color: #fff; }
+
+        #finalScoreLabel { color: #a5a1b8; font-size: 14px; font-weight: bold; letter-spacing: 1px; margin-top: 10px;}
+        #finalScore { font-size: 54px; font-weight: 900; margin-bottom: 25px; color: #ffff00; text-shadow: 0 0 20px rgba(255,255,0,0.4); }
+        
+        .btn-play {
+            background: linear-gradient(135deg, #b388ff 0%, #7c4dff 100%); 
+            color: #ffffff; padding: 16px 50px; border: none;
+            border-radius: 30px; font-size: 18px; font-weight: bold; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 5px 0 #4a148c, 0 10px 20px rgba(124,77,255,0.4);
+            transition: all 0.1s;
+        }
+        .btn-play:active { transform: translateY(4px); box-shadow: 0 1px 0 #4a148c; }
+    </style>
+</head>
+<body>
+
+<div id="gameContainer">
+    <div id="gameeHeader">
+        <div class="header-center">JAY NETWORK</div>
+    </div>
+
+    <div id="scoreContainer">
+        <div class="score-title">Score</div>
+        <div id="scoreNum" class="score-val">0</div>
+    </div>
+
+    <div id="overlay">
+        <h1 id="popTitle" class="title-menu">RED BLUE</h1>
+        
+        <div id="instructions">
+            <h3>How to Play:</h3>
+            <ul>
+                <li>Tap <b>Left</b> or <b>Right</b> side of your ship to shift exactly <b>1 column</b>.</li>
+                <li>Tap the <b>Blue</b> or <b>Red</b> buttons at the bottom to swap your ship's color.</li>
+                <li>Match incoming blocks. Avoid wrong colors or orange obstacles!</li>
+                <li>Collect <b>🔫 (Guns)</b>, <b>🛡️ (Shields)</b>, and Gems for ultimate power-ups.</li>
+                <li><i>Note: The speed increases the higher your score gets!</i></li>
+            </ul>
+        </div>
+
+        <div id="finalScoreLabel" style="display:none;">FINAL SCORE</div>
+        <div id="finalScore" style="display:none;">0</div>
+        <button id="startBtn" class="btn-play">Start Game</button>
+    </div>
+
+    <div id="controlPanel">
+        <div id="btnBlue" class="color-btn" title="Switch Blue"></div>
+        <div id="sliderTrack">
+            <div id="sliderFill"></div>
+        </div>
+        <div id="btnRed" class="color-btn" title="Switch Red"></div>
+    </div>
+</div>
+
+<script>
+const COLS = 7;
+const ROWS = 12;
+
+const canvas = document.createElement('canvas');
+const container = document.getElementById('gameContainer');
+container.appendChild(canvas);
+const ctx = canvas.getContext('2d');
+
+let cw = canvas.width = container.clientWidth;
+let ch = canvas.height = container.clientHeight - 170; 
+
+const gridW = cw / COLS;
+const gridH = ch / ROWS;
+const playerY = ch - 70; 
+
+// Game Variables
+let gameState = 'ready';
+let score = 0;
+let blocks = [];
+let bullets = [];
+let powerups = [];
+let particles = [];
+
+const INITIAL_SPEED = 1.5; 
+const MAX_SPEED = 5.0;     
+let currentSpeed = INITIAL_SPEED;
+let spawnTimer = 0;
+let spawnInterval = 140;   
+
+// Player Setup
+let player = {
+    gridX: 3, 
+    color: 'blue',
+    shieldTime: 0,
+    gunTime: 0,
+    shootCooldown: 0,
+    visualX: 3 * gridW 
+};
+
+// --- AUDIO SYNTHESIZER ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'move') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(450, now + 0.08);
+        gainNode.gain.setValueAtTime(0.15, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.08);
+        osc.start(now); osc.stop(now + 0.08);
+    } else if (type === 'color') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'score') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.06);
+        gainNode.gain.setValueAtTime(0.15, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
+        osc.start(now); osc.stop(now + 0.2);
+    } else if (type === 'powerup') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.25);
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.25);
+        osc.start(now); osc.stop(now + 0.25);
+    } else if (type === 'gameover') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.5);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+        osc.start(now); osc.stop(now + 0.5);
+    }
+}
+
+// Click Side Movement
+canvas.addEventListener('click', (e) => {
+    if (gameState !== 'playing') return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const playerMidX = player.gridX * gridW + gridW / 2;
+    
+    if (clickX < playerMidX) {
+        if (player.gridX > 0) { player.gridX--; playSound('move'); }
+    } else {
+        if (player.gridX < COLS - 1) { player.gridX++; playSound('move'); }
+    }
+    updateSliderUI();
+});
+
+document.getElementById('btnBlue').addEventListener('click', () => { 
+    if(gameState === 'playing') { player.color = 'blue'; playSound('color'); } 
+});
+document.getElementById('btnRed').addEventListener('click', () => { 
+    if(gameState === 'playing') { player.color = 'red'; playSound('color'); } 
+});
+document.getElementById('startBtn').addEventListener('click', startGame);
+
+function updateSliderUI() {
+    const fillPercent = (player.gridX / (COLS - 1)) * 100;
+    document.getElementById('sliderFill').style.width = `${fillPercent}%`;
+}
+
+function updateGameSpeed() {
+    let speedBonus = (score / 25) * 0.25;
+    currentSpeed = Math.min(MAX_SPEED, INITIAL_SPEED + speedBonus);
+    spawnInterval = Math.max(55, 140 - (currentSpeed - INITIAL_SPEED) * 25);
+}
+
+function startGame() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    score = 0;
+    blocks = [];
+    bullets = [];
+    powerups = [];
+    particles = [];
+    
+    player.gridX = 3;
+    player.visualX = 3 * gridW;
+    player.color = 'blue';
+    player.shieldTime = 0;
+    player.gunTime = 0;
+    player.shootCooldown = 0;
+    
+    currentSpeed = INITIAL_SPEED; 
+    spawnInterval = 140; 
+    spawnTimer = 0;
+    
+    updateSliderUI();
+    
+    document.getElementById('scoreNum').innerText = score;
+    document.getElementById('overlay').style.display = 'none';
+    gameState = 'playing';
+}
+
+function gameOver() {
+    gameState = 'gameover';
+    playSound('gameover');
+    
+    // Memunculkan kembali tampilan Game Over yang lengkap dan interaktif
+    const popTitle = document.getElementById('popTitle');
+    popTitle.innerText = "GAME OVER";
+    popTitle.className = "title-gameover";
+    
+    document.getElementById('instructions').style.display = 'block'; 
+    document.getElementById('finalScoreLabel').style.display = 'block';
+    document.getElementById('finalScore').innerText = score;
+    document.getElementById('finalScore').style.display = 'block';
+    document.getElementById('startBtn').innerText = "Play Again";
+    document.getElementById('overlay').style.display = 'flex';
+}
+
+function addParticles(x, y, color) {
+    for (let i = 0; i < 8; i++) {
+        particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 4,
+            vy: (Math.random() - 0.5) * 4,
+            radius: Math.random() * 3 + 1,
+            alpha: 1,
+            color: color
+        });
+    }
+}
+
+function spawnRow() {
+    const chance = Math.random();
+    if (chance < 0.60) {
+        let safeColor = Math.random() > 0.5 ? 'blue' : 'red';
+        let safeCol = Math.floor(Math.random() * COLS);
+        
+        for (let c = 0; c < COLS; c++) {
+            if (c === safeCol) {
+                blocks.push({ x: c, y: -gridH, color: safeColor, type: 'color' });
+            } else if (Math.random() > 0.4) {
+                let obstacleType = Math.random() > 0.4 ? 'standard' : (safeColor === 'blue' ? 'red' : 'blue');
+                blocks.push({ x: c, y: -gridH, color: obstacleType, type: obstacleType === 'standard' ? 'standard' : 'color' });
+            }
+        }
+    } else {
+        let itemCol = Math.floor(Math.random() * COLS);
+        let itemType = Math.random();
+        if (itemType < 0.50) {
+            powerups.push({ x: itemCol, y: -gridH, type: 'pistol' });
+        } else if (itemType < 0.80) {
+            powerups.push({ x: itemCol, y: -gridH, type: 'perisai' });
+        } else {
+            powerups.push({ x: itemCol, y: -gridH, type: 'permata' });
+        }
+    }
+}
+
+function update() {
+    if (gameState !== 'playing') return;
+
+    let targetVisualX = player.gridX * gridW;
+    player.visualX += (targetVisualX - player.visualX) * 0.3;
+
+    if (player.shieldTime > 0) player.shieldTime--;
+    if (player.gunTime > 0) {
+        player.gunTime--;
+        player.shootCooldown--;
+        if (player.shootCooldown <= 0) {
+            bullets.push({ x: player.visualX + gridW / 2, y: playerY });
+            player.shootCooldown = 12; 
+        }
+    }
+
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].y -= 10; 
+        for (let j = blocks.length - 1; j >= 0; j--) {
+            let bx = blocks[j].x * gridW;
+            if (bullets[i].x > bx && bullets[i].x < bx + gridW && bullets[i].y > blocks[j].y && bullets[i].y < blocks[j].y + gridH) {
+                addParticles(bx + gridW/2, blocks[j].y + gridH/2, blocks[j].color === 'blue' ? '#00d2ff' : '#ff416c');
+                blocks.splice(j, 1);
+                bullets.splice(i, 1);
+                score += 5; 
+                playSound('score');
+                document.getElementById('scoreNum').innerText = score;
+                updateGameSpeed(); 
+                break;
+            }
+        }
+        if (bullets[i] && bullets[i].y < 0) bullets.splice(i, 1);
+    }
+
+    spawnTimer++;
+    if (spawnTimer >= spawnInterval) {
+        spawnTimer = 0;
+        spawnRow();
+    }
+
+    blocks.forEach(b => b.y += currentSpeed);
+    powerups.forEach(p => p.y += currentSpeed);
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].x += particles[i].vx;
+        particles[i].y += particles[i].vy;
+        particles[i].alpha -= 0.03;
+        if (particles[i].alpha <= 0) particles.splice(i, 1);
+    }
+    
+    for (let i = blocks.length - 1; i >= 0; i--) {
+        let b = blocks[i];
+        if (b.x === player.gridX && b.y + gridH >= playerY && b.y <= playerY + gridH - 10) {
+            if (player.shieldTime > 0) {
+                addParticles(b.x * gridW + gridW/2, b.y + gridH/2, '#00ff66');
+                blocks.splice(i, 1);
+                score += 5; playSound('score');
+                document.getElementById('scoreNum').innerText = score;
+                updateGameSpeed();
+            } else if (b.type === 'color' && b.color === player.color) {
+                addParticles(b.x * gridW + gridW/2, b.y + gridH/2, player.color === 'blue' ? '#00d2ff' : '#ff416c');
+                blocks.splice(i, 1);
+                score += 5; playSound('score');
+                document.getElementById('scoreNum').innerText = score;
+                updateGameSpeed();
+            } else {
+                gameOver();
+                return;
+            }
+        }
+    }
+
+    for (let i = powerups.length - 1; i >= 0; i--) {
+        let p = powerups[i];
+        if (p.x === player.gridX && p.y + gridH >= playerY && p.y <= playerY + gridH) {
+            playSound('powerup');
+            if (p.type === 'pistol') player.gunTime = 450; 
+            else if (p.type === 'perisai') player.shieldTime = 450;
+            else if (p.type === 'permata') {
+                score += 5; 
+                document.getElementById('scoreNum').innerText = score;
+                updateGameSpeed();
+            }
+            addParticles(p.x * gridW + gridW/2, p.y + gridH/2, '#ffff00');
+            powerups.splice(i, 1);
+        }
+    }
+
+    blocks = blocks.filter(b => b.y < ch);
+    powerups = powerups.filter(p => p.y < ch);
+}
+
+function draw() {
+    ctx.clearRect(0, 0, cw, ch);
+
+    ctx.strokeStyle = 'rgba(90, 45, 156, 0.06)';
+    ctx.lineWidth = 1;
+    for (let c = 0; c <= COLS; c++) {
+        ctx.beginPath(); ctx.moveTo(c * gridW, 0); ctx.lineTo(c * gridW, ch); ctx.stroke();
+    }
+    for (let r = 0; r <= ROWS; r++) {
+        ctx.beginPath(); ctx.moveTo(0, r * gridH); ctx.lineTo(cw, r * gridH); ctx.stroke();
+    }
+
+    particles.forEach(p => {
+        ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    });
+
+    ctx.fillStyle = '#b388ff';
+    bullets.forEach(b => {
+        ctx.fillRect(b.x - 2, b.y, 4, 15);
+        ctx.shadowBlur = 8; ctx.shadowColor = '#b388ff';
+    });
+    ctx.shadowBlur = 0; 
+
+    blocks.forEach(b => {
+        let pad = 4;
+        let bx = b.x * gridW + pad;
+        let by = b.y + pad;
+        let bw = gridW - (pad * 2);
+        let bh = gridH - (pad * 2);
+
+        if (b.type === 'standard') {
+            let grad = ctx.createLinearGradient(bx, by, bx, by + bh);
+            grad.addColorStop(0, '#f9d423'); grad.addColorStop(1, '#ff4e50');
+            ctx.fillStyle = grad; roundRect(ctx, bx, by, bw, bh, 8);
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(bx + bw/2, by + bh/2, 4, 0, Math.PI*2); ctx.fill();
+        } else {
+            let grad = ctx.createLinearGradient(bx, by, bx, by + bh);
+            if (b.color === 'blue') {
+                grad.addColorStop(0, '#00f2fe'); grad.addColorStop(1, '#4facfe');
+            } else {
+                grad.addColorStop(0, '#ff0844'); grad.addColorStop(1, '#ffb199');
+            }
+            ctx.fillStyle = grad; roundRect(ctx, bx, by, bw, bh, 8);
+        }
+    });
+
+    powerups.forEach(p => {
+        let cx = p.x * gridW + gridW/2;
+        let cy = p.y + gridH/2;
+        
+        if (p.type === 'permata') {
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - 12); ctx.lineTo(cx + 10, cy);
+            ctx.lineTo(cx, cy + 12); ctx.lineTo(cx - 10, cy);
+            ctx.closePath(); ctx.fill();
+        } else if (p.type === 'pistol') {
+            ctx.fillStyle = '#ff007f'; drawHex(cx, cy, 15);
+            ctx.fillStyle = '#fff'; ctx.font = '14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('🔫', cx, cy);
+        } else if (p.type === 'perisai') {
+            ctx.fillStyle = '#007fff'; drawHex(cx, cy, 15);
+            ctx.fillStyle = '#fff'; ctx.font = '14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('🛡️', cx, cy);
+        }
+    });
+
+    // --- RENDER SHIP ---
+    let px = player.visualX + 6;
+    let py = playerY + 6; 
+    let pw = gridW - 12;
+    let ph = gridH - 12;
+
+    if (player.shieldTime > 0) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(0, 255, 102, 0.6)'; ctx.lineWidth = 4;
+        ctx.shadowBlur = 12; ctx.shadowColor = '#00ff66';
+        ctx.beginPath(); ctx.arc(px + pw/2, py + ph/2, gridW/1.4, 0, Math.PI*2); ctx.stroke();
+        ctx.restore();
+    }
+
+    ctx.save();
+    let pGrad = ctx.createLinearGradient(px, py, px + pw, py + ph);
+    if (player.color === 'blue') {
+        pGrad.addColorStop(0, '#00ffff'); pGrad.addColorStop(0.5, '#0088ff'); pGrad.addColorStop(1, '#0044cc');
+        ctx.shadowColor = '#00ffff';
+    } else {
+        pGrad.addColorStop(0, '#ff5e62'); pGrad.addColorStop(0.5, '#ff2525'); pGrad.addColorStop(1, '#990011');
+        ctx.shadowColor = '#ff2525';
+    }
+    
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = pGrad;
+    roundRect(ctx, px, py, pw, ph, 12);
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    roundRect(ctx, px + 4, py + 4, pw - 8, ph / 2.5, 6);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(px + pw/2 - 6, py + ph - 12, 12, 4); 
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath(); ctx.fill();
+}
+
+function drawHex(x, y, size) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        let angle = (Math.PI / 3) * i;
+        ctx.lineTo(x + size * Math.cos(angle), y + size * Math.sin(angle));
+    }
+    ctx.closePath(); ctx.fill();
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html>
