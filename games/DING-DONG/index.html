@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DING DONG</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #05050a;
+            color: #fff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            background: radial-gradient(circle at center, #100b26 0%, #05030a 100%);
+            border: 3px solid #00f5d4;
+            box-shadow: 0 0 30px rgba(0, 245, 212, 0.3);
+            border-radius: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="380" height="660"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Game States
+let gameState = 'START'; 
+let score = 0;
+let combo = 1;
+let isHolding = false;
+let ballAttached = "bottom"; 
+let gameTick = 0;
+let ballTimeScale = 1.0; 
+
+// Floating text array for score feedback
+let floatTexts = [];
+
+const COLORS = {
+    bgGrid: "rgba(0, 245, 212, 0.04)",
+    ball: "#00f5d4",
+    shieldOuter: "#7209b7",
+    shieldInner: "#f72585",
+    shieldActive: "#00f5d4",
+    obstacle: "#ff0055",
+    textMain: "#ffffff",
+    textSub: "#4cc9f0"
+};
+
+let ball = {
+    x: canvas.width / 2,
+    y: 0,
+    radius: 12,
+    speedY: 0,
+    baseSpeed: 8.5, 
+};
+
+let paddleHeight = 20;
+let paddleWidth = 110; 
+let paddleRadius = 10;
+let topPaddle = { x: canvas.width / 2 - paddleWidth / 2, y: 60 };
+let bottomPaddle = { x: canvas.width / 2 - paddleWidth / 2, y: canvas.height - 60 - paddleHeight };
+
+let obstacles = [];
+const OBSTACLE_ZONE_MIN = 160;
+const OBSTACLE_ZONE_MAX = canvas.height - 160;
+
+ball.y = bottomPaddle.y - ball.radius;
+
+// Sound Generator
+let audioCtx = null;
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+
+function playSound(type) {
+    if (!audioCtx) return;
+    let osc = audioCtx.createOscillator();
+    let gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    let now = audioCtx.currentTime;
+    
+    if (type === 'catch') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.start(now); osc.stop(now + 0.12);
+    } else if (type === 'bounce') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(250, now);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now); osc.stop(now + 0.08);
+    } else if (type === 'gameover') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(30, now + 0.5);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now); osc.stop(now + 0.5);
+    } else if (type === 'start') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(1040, now + 0.15);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now); osc.stop(now + 0.15);
+    }
+}
+
+function spawnObstacle() {
+    let side = Math.random() < 0.5 ? "left" : "right";
+    let width = Math.floor(Math.random() * 50) + 75; 
+    let height = 18;
+    let y = Math.floor(Math.random() * (OBSTACLE_ZONE_MAX - OBSTACLE_ZONE_MIN)) + OBSTACLE_ZONE_MIN;
+    let speedX = (Math.random() * 2.5 + 4.0); 
+    let x = side === "left" ? -width : canvas.width;
+    if (side === "right") speedX = -speedX;
+    obstacles.push({ x, y, width, height, speedX });
+}
+
+function drawGrid() {
+    ctx.strokeStyle = COLORS.bgGrid;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < canvas.width; i += 30) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+    for (let i = 0; i < canvas.height; i += 30) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
+}
+
+function drawCyberShield(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h - r); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = isHolding ? COLORS.shieldActive : COLORS.shieldInner;
+    ctx.fillStyle = isHolding ? COLORS.shieldOuter : "rgba(114, 9, 183, 0.5)";
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = isHolding ? COLORS.shieldActive : COLORS.shieldInner;
+    ctx.shadowBlur = 5;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+}
+
+function addFloatingText(text, x, y, color) {
+    floatTexts.push({ text, x, y, alpha: 1.0, ySpeed: -1 });
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGrid();
+
+    if (gameState === 'START') {
+        ctx.textAlign = "center";
+        ctx.shadowBlur = 25; ctx.shadowColor = COLORS.ball;
+        ctx.fillStyle = COLORS.ball; ctx.font = "bold 42px Arial";
+        ctx.fillText("DING DONG", canvas.width / 2, canvas.height / 2 - 50);
+        
+        ctx.shadowBlur = 0; ctx.fillStyle = COLORS.textMain; ctx.font = "bold 18px Arial";
+        ctx.fillText("START GAME", canvas.width / 2, canvas.height / 2 + 40);
+        ctx.fillStyle = COLORS.textSub; ctx.font = "14px Arial";
+        ctx.fillText("TAP TO CONTINUE", canvas.width / 2, canvas.height / 2 + 80);
+        return;
+    }
+
+    if (gameState === 'INSTRUCTIONS') {
+        ctx.textAlign = "center";
+        ctx.shadowBlur = 15; ctx.shadowColor = COLORS.textSub;
+        ctx.fillStyle = COLORS.textSub; ctx.font = "bold 24px Arial";
+        ctx.fillText("HOW TO SCORE", canvas.width / 2, canvas.height / 2 - 120);
+        ctx.shadowBlur = 0; ctx.fillStyle = COLORS.textMain; ctx.font = "14px Arial";
+        let lines = [
+            "⚠️ Auto-Bounce gives +5 PTS (Combo Resets)",
+            "🛡️ Hold screen to CATCH for +10 PERFECT!",
+            "⚡ Play without SlowMo to build big COMBOs",
+            "",
+            "Hold mid-air to trigger SLOW-MOTION",
+            "Avoid neon red obstacles!"
+        ];
+        lines.forEach((line, index) => { ctx.fillText(line, canvas.width / 2, canvas.height / 2 - 50 + (index * 25)); });
+        ctx.fillStyle = COLORS.ball; ctx.font = "bold 16px Arial";
+        ctx.fillText("TAP TO PLAY!", canvas.width / 2, canvas.height / 2 + 160);
+        return;
+    }
+
+    if (gameState === 'GAMEOVER') {
+        ctx.textAlign = "center";
+        ctx.shadowBlur = 20; ctx.shadowColor = COLORS.obstacle;
+        ctx.fillStyle = COLORS.obstacle; ctx.font = "bold 36px Arial";
+        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
+        ctx.shadowBlur = 10; ctx.shadowColor = COLORS.textSub;
+        ctx.fillStyle = COLORS.textMain; ctx.font = "600 20px Arial";
+        ctx.fillText("FINAL SCORE: " + score, canvas.width / 2, canvas.height / 2 + 15);
+        ctx.fillStyle = COLORS.textSub; ctx.font = "14px Arial";
+        ctx.fillText("TAP SCREEN TO REBOOT", canvas.width / 2, canvas.height / 2 + 65);
+        ctx.shadowBlur = 0;
+        return;
+    }
+
+    // In-game UI
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.font = "bold 130px Arial"; ctx.textAlign = "center";
+    ctx.fillText(score, canvas.width / 2, canvas.height / 2 + 45); 
+
+    if (ballTimeScale < 1.0 && ballAttached === null) {
+        ctx.fillStyle = "rgba(0, 245, 212, 0.4)"; ctx.font = "bold 14px Arial";
+        ctx.fillText("● BALL SLOW-MO ACTIVE ●", canvas.width / 2, 35);
+    }
+
+    if (combo > 1) {
+        ctx.fillStyle = COLORS.textSub; ctx.font = "italic bold 22px Arial";
+        ctx.shadowBlur = 10; ctx.shadowColor = COLORS.textSub;
+        ctx.fillText("COMBO " + combo + "x", canvas.width / 2, canvas.height / 2 - 90);
+        ctx.shadowBlur = 0;
+    }
+
+    // Floating Score Animation
+    floatTexts.forEach((ft, index) => {
+        ctx.fillStyle = `rgba(0, 245, 212, ${ft.alpha})`;
+        ctx.font = "bold 16px Arial";
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ft.y += ft.ySpeed;
+        ft.alpha -= 0.02;
+        if (ft.alpha <= 0) floatTexts.splice(index, 1);
+    });
+
+    drawCyberShield(topPaddle.x, topPaddle.y, paddleWidth, paddleHeight, paddleRadius);
+    drawCyberShield(bottomPaddle.x, bottomPaddle.y, paddleWidth, paddleHeight, paddleRadius);
+
+    ctx.shadowColor = COLORS.obstacle; ctx.fillStyle = COLORS.obstacle;
+    obstacles.forEach(obs => { ctx.shadowBlur = 12; ctx.fillRect(obs.x, obs.y, obs.width, obs.height); });
+
+    ctx.shadowBlur = 18; ctx.shadowColor = COLORS.ball; ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2); ctx.fillStyle = COLORS.ball; ctx.fill(); ctx.shadowBlur = 0; 
+}
+
+function update() {
+    if (gameState !== 'PLAYING') return;
+
+    if (isHolding && ballAttached === null) {
+        ballTimeScale = 0.25; 
+    } else {
+        ballTimeScale = 1.0;  
+    }
+
+    gameTick++;
+    let spawnRate = Math.max(35, 80 - score * 0.1); 
+    if (gameTick >= spawnRate) { gameTick = 0; spawnObstacle(); }
+
+    obstacles.forEach((obs, index) => {
+        obs.x += obs.speedX; 
+        if (obs.speedX > 0 && obs.x > canvas.width) obstacles.splice(index, 1);
+        if (obs.speedX < 0 && obs.x + obs.width < 0) obstacles.splice(index, 1);
+
+        if (ball.x + ball.radius > obs.x && ball.x - ball.radius < obs.x + obs.width &&
+            ball.y + ball.radius > obs.y && ball.y - ball.radius < obs.y + obs.height) {
+            gameState = 'GAMEOVER'; playSound('gameover');
+        }
+    });
+
+    if (ballAttached === "bottom") {
+        ball.y = bottomPaddle.y - ball.radius;
+        if (!isHolding) { ball.speedY = -ball.baseSpeed; ballAttached = null; playSound('catch'); }
+    } else if (ballAttached === "top") {
+        ball.y = topPaddle.y + paddleHeight + ball.radius;
+        if (!isHolding) { ball.speedY = ball.baseSpeed; ballAttached = null; playSound('catch'); }
+    } else {
+        ball.y += ball.speedY * ballTimeScale; 
+
+        // HIT: Top Shield
+        if (ball.speedY < 0 && ball.y - ball.radius <= topPaddle.y + paddleHeight) {
+            if (isHolding) {
+                ballAttached = "top";
+                let points = 10 * combo;
+                score += points;
+                addFloatingText("+" + points + " PERFECT", ball.x, topPaddle.y + 40);
+                combo++;
+                playSound('catch');
+            } else {
+                ball.speedY = ball.baseSpeed; 
+                score += 5; 
+                combo = 1;  
+                addFloatingText("+5 Bounce", ball.x, topPaddle.y + 40);
+                playSound('bounce');
+            }
+        }
+
+        // HIT: Bottom Shield
+        if (ball.speedY > 0 && ball.y + ball.radius >= bottomPaddle.y) {
+            if (isHolding) {
+                ballAttached = "bottom";
+                let points = 10 * combo;
+                score += points;
+                addFloatingText("+" + points + " PERFECT", ball.x, bottomPaddle.y - 20);
+                combo++;
+                playSound('catch');
+            } else {
+                ball.speedY = -ball.baseSpeed; 
+                score += 5; 
+                combo = 1;  
+                addFloatingText("+5 Bounce", ball.x, bottomPaddle.y - 20);
+                playSound('bounce');
+            }
+        }
+
+        if (ball.y < 0 || ball.y > canvas.height) { gameState = 'GAMEOVER'; playSound('gameover'); }
+    }
+}
+
+window.addEventListener("pointerdown", () => {
+    initAudio(); 
+    if (gameState === 'START') { gameState = 'INSTRUCTIONS'; playSound('start'); return; }
+    if (gameState === 'INSTRUCTIONS') { gameState = 'PLAYING'; playSound('start'); return; }
+    if (gameState === 'GAMEOVER') {
+        score = 0; combo = 1; obstacles = []; ballAttached = "bottom"; gameTick = 0; floatTexts = [];
+        gameState = 'PLAYING'; playSound('start'); return;
+    }
+    isHolding = true;
+});
+
+window.addEventListener("pointerup", () => { isHolding = false; });
+
+function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+gameLoop();
+</script>
+
+</body>
+</html>
