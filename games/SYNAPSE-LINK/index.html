@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SYNAPSE LINK</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+-webkit-tap-highlight-color: transparent;
+-webkit-user-select: none;
+user-select: none;
+}
+
+/* Diperbaiki agar background gelap pekat mengunci seluruh area layar */
+html, body {
+width: 100%;
+height: 100%;
+background: #050508; /* fallback warna gelap jika gradasi lambat dimuat */
+overflow: hidden;
+}
+
+body{
+min-height:100vh;
+background: radial-gradient(circle at center, #12072b 0%, #050508 100%);
+color:white;
+display:flex;
+justify-content:center;
+align-items: center;
+}
+
+.container{
+width:min(95vw, 450px);
+padding:15px;
+display: flex;
+flex-direction: column;
+justify-content: center;
+}
+
+/* JUDUL */
+.title{
+text-align:center;
+font-size:36px;
+font-weight:900;
+line-height:1.1;
+margin-bottom:15px;
+letter-spacing: 2px;
+color: #fff;
+text-shadow:
+0 0 7px #fff,
+0 0 15px #ff007f,
+0 0 30px #ff007f;
+}
+
+/* SCORE */
+.top{
+display:flex;
+gap:12px;
+justify-content:center;
+margin-bottom:15px;
+}
+
+.card{
+flex:1;
+padding:10px;
+border-radius:15px;
+background:rgba(255, 255, 255, 0.03);
+border:1px solid rgba(255, 0, 127, 0.3);
+box-shadow: 0 0 15px rgba(255, 0, 127, 0.1);
+text-align:center;
+backdrop-filter: blur(5px);
+}
+
+.card-title{
+font-size:12px;
+font-weight:bold;
+letter-spacing:1px;
+color:#00f5ff;
+margin-bottom:3px;
+text-shadow: 0 0 5px rgba(0, 245, 255, 0.5);
+}
+
+.card-value{
+font-size:28px;
+font-weight:900;
+color:white;
+text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* TIMER */
+.timer{
+text-align:center;
+font-size:26px;
+font-weight: 800;
+margin-bottom:15px;
+color: #fff;
+text-shadow: 0 0 10px #00f5ff, 0 0 20px #00f5ff;
+}
+
+/* FRAME NEON */
+.game-frame{
+border-radius:24px;
+padding:6px;
+border: 2px solid #ff007f;
+background: rgba(0, 0, 0, 0.6);
+box-shadow:
+0 0 15px #ff007f,
+inset 0 0 15px rgba(255, 0, 127, 0.4);
+}
+
+.game-board{
+border-radius:18px;
+background:#090214;
+border: 1px solid rgba(0, 245, 255, 0.2);
+padding:12px;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+/* START SCREEN */
+.start-screen{
+position:fixed;
+inset:0;
+background: radial-gradient(circle at center, #1a0b36 0%, #030305 100%);
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+padding:20px;
+z-index:9999;
+overflow-y: auto;
+}
+
+.game-title{
+font-size:38px;
+font-weight:900;
+margin-bottom:10px;
+letter-spacing: 2px;
+color: #fff;
+text-shadow:
+0 0 10px #fff,
+0 0 20px #00f5ff,
+0 0 40px #ff007f;
+line-height: 1.2;
+}
+
+.tagline{
+font-size:14px;
+margin-bottom:20px;
+max-width:400px;
+color: #b3a1df;
+letter-spacing: 0.5px;
+padding: 0 10px;
+}
+
+.how-to-play{
+background: rgba(255, 255, 255, 0.02);
+border: 1px solid rgba(255, 0, 127, 0.25);
+padding:15px;
+border-radius:16px;
+margin-bottom:20px;
+max-width:400px;
+width: 95%;
+text-align: left;
+box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.how-to-play h2{
+margin-bottom:12px;
+color:#00f5ff;
+font-size:18px;
+text-align: center;
+letter-spacing: 1.5px;
+text-shadow: 0 0 8px rgba(0, 245, 255, 0.4);
+}
+
+.how-to-play .step {
+margin-bottom: 10px;
+font-size: 13px;
+line-height: 1.5;
+color: #d1c7e6;
+}
+
+.how-to-play .step:last-child {
+margin-bottom: 0;
+}
+
+.how-to-play b {
+color: #ff007f;
+text-shadow: 0 0 3px rgba(255, 0, 127, 0.5);
+}
+
+#startBtn{
+padding:14px 40px;
+font-size:20px;
+font-weight:bold;
+border:none;
+border-radius:50px;
+cursor:pointer;
+background: linear-gradient(90deg, #ff007f, #00f5ff);
+color:white;
+box-shadow: 0 0 20px rgba(255, 0, 127, 0.6);
+transition: all 0.3s ease;
+letter-spacing: 1px;
+}
+
+/* GRID & CELLS */
+#gameGrid{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:6px;
+width:100%;
+margin:auto;
+}
+
+.cell{
+width:100%;
+aspect-ratio:1;
+background: rgba(255, 255, 255, 0.03);
+border: 1px solid rgba(255, 255, 255, 0.08);
+border-radius:10px;
+display:flex;
+justify-content:center;
+align-items:center;
+font-size:24px;
+cursor:pointer;
+transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cell:active {
+background: rgba(0, 245, 255, 0.15);
+border-color: #00f5ff;
+transform: scale(0.95);
+}
+
+.selected{
+border-color: #ff007f !important;
+background: rgba(255, 0, 127, 0.2) !important;
+box-shadow: 0 0 12px #ff007f !important;
+transform: scale(1.02);
+}
+
+/* GAME OVER SCREEN */
+.game-over-screen{
+position:fixed;
+inset:0;
+background: rgba(3, 3, 5, 0.95);
+display:none;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+z-index:10000;
+text-align:center;
+padding: 20px;
+}
+
+.game-over-screen h1{
+font-size:45px;
+font-weight: 900;
+color:#ff007f;
+margin-bottom:10px;
+text-shadow: 0 0 15px #ff007f, 0 0 30px #ff007f;
+letter-spacing: 2px;
+}
+
+.final-text{
+font-size:12px;
+color:#9e94b8;
+margin-top:12px;
+letter-spacing: 1.5px;
+font-weight: bold;
+}
+
+#finalScore,
+#finalBest{
+font-size:42px;
+font-weight:900;
+color: #fff;
+text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+#restartBtn{
+margin-top:25px;
+padding:14px 40px;
+font-size:20px;
+font-weight:bold;
+border:none;
+border-radius:50px;
+cursor:pointer;
+background: linear-gradient(90deg, #00f5ff, #ff007f);
+color:white;
+box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+}
+
+/* RESPONSIVE UNTUK LAYAR SANGAT KECIL */
+@media(max-width:360px) {
+.title { font-size: 30px; }
+.cell { font-size: 20px; }
+.game-title { font-size: 32px; }
+}
+</style>
+</head>
+<body>
+
+<div id="startScreen" class="start-screen">
+    <h1 class="game-title">SYNAPSE LINK</h1>
+    <p class="tagline">Match cyber gems, break the grid, and dominate the high score.</p>
+
+    <div class="how-to-play">
+        <h2>🎮 SYSTEM MANUAL</h2>
+        <div class="step"><b>1. Selection:</b> Tap any cell on the grid to select a gem. The chosen gem will light up in neon pink.</div>
+        <div class="step"><b>2. Match-3 Mechanic:</b> Select exactly <b>3 identical gems</b> from anywhere on the board. They do not need to be adjacent.</div>
+        <div class="step"><b>3. Scoring System:</b> Successfully matching 3 gems will clear them, grant new random gems, and award you <b>+10 points</b>. Wrong combos will reset your selection.</div>
+        <div class="step"><b>4. Time Limit:</b> You only have <b>60 seconds</b>. Act fast and break your personal high score before the countdown hits zero!</div>
+    </div>
+
+    <button id="startBtn">▶ INITIALIZE GAME</button>
+</div>
+
+<div id="gameOverScreen" class="game-over-screen">
+    <h1>GAME OVER</h1>
+    <p class="final-text">YOUR FINAL SCORE</p>
+    <div id="finalScore">0</div>
+    <p class="final-text">SYSTEM HIGH SCORE</p>
+    <div id="finalBest">0</div>
+    <button id="restartBtn">🔄 REBOOT SESSION</button>
+</div>
+
+<div class="container">
+    <div class="title">SYNAPSE LINK</div>
+    
+    <div class="top">
+        <div class="card">
+            <div class="card-title">DATA POINTS</div>
+            <div class="card-value" id="score">0</div>
+        </div>
+        <div class="card">
+            <div class="card-title">MAX SCORE</div>
+            <div class="card-value" id="best">0</div>
+        </div>
+    </div>
+
+    <div class="timer">⏱ TIME: <span id="time">60</span>s</div>
+
+    <div class="game-frame">
+        <div class="game-board">
+            <div id="gameGrid"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+let time = 60; 
+let score = 0;
+let highScore = localStorage.getItem("highScore") || 0;
+
+document.getElementById("best").textContent = highScore;
+document.getElementById("score").textContent = score;
+document.getElementById("time").textContent = time;
+
+let gameOver = true;
+let timer;
+
+function startTimer() {
+    timer = setInterval(() => {
+        if (time > 0) {
+            time--;
+            document.getElementById("time").textContent = time;
+        }
+
+        if (time <= 0) {
+            clearInterval(timer);
+            gameOver = true;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("highScore", highScore);
+                document.getElementById("best").textContent = highScore;
+            }
+
+            document.getElementById("finalScore").textContent = score;
+            document.getElementById("finalBest").textContent = highScore;
+            document.getElementById("gameOverScreen").style.display = "flex";
+        }
+    }, 1000);
+}
+
+document.getElementById("startBtn").addEventListener("click", () => {
+    document.getElementById("startScreen").style.display = "none";
+    gameOver = false;
+    startTimer();
+});
+
+const gems = ["💎","🔮","🔷","🟣","🔶"];
+const gameGrid = document.getElementById("gameGrid");
+let selectedGems = [];
+
+for(let i=0;i<25;i++){
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.textContent = gems[Math.floor(Math.random() * gems.length)];
+
+    cell.addEventListener("click", () => {
+        if(gameOver) return;
+        if(cell.classList.contains("selected")) return;
+
+        cell.classList.add("selected");
+        selectedGems.push(cell);
+
+        if(selectedGems.length >= 3){
+            let sameGem = selectedGems.every(
+                g => g.textContent === selectedGems[0].textContent
+            );
+
+            if(sameGem){
+                selectedGems.forEach(g => {
+                    g.textContent = gems[Math.floor(Math.random() * gems.length)];
+                    g.classList.remove("selected");
+                });
+
+                score += 10;
+                document.getElementById("score").textContent = score;
+
+                if(score > highScore){
+                    highScore = score;
+                    localStorage.setItem("highScore", highScore);
+                    document.getElementById("best").textContent = highScore;
+                }
+            } else {
+                selectedGems.forEach(g => {
+                    g.classList.remove("selected");
+                });
+            }
+            selectedGems = [];
+        }
+    });
+    gameGrid.appendChild(cell);
+}
+
+document.getElementById("restartBtn").addEventListener("click", () => {
+    time = 60;
+    score = 0;
+    gameOver = false;
+    selectedGems = [];
+
+    const allCells = document.querySelectorAll(".cell");
+    allCells.forEach(cell => {
+        cell.classList.remove("selected");
+        cell.textContent = gems[Math.floor(Math.random() * gems.length)];
+    });
+
+    document.getElementById("score").textContent = score;
+    document.getElementById("time").textContent = time;
+    document.getElementById("gameOverScreen").style.display = "none";
+    
+    clearInterval(timer);
+    startTimer();
+});
+</script>
+
+</body>
+</html>
