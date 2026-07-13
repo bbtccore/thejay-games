@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+    <title>Neural Hijack</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            background-color: #0b0514;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Consolas', 'Segoe UI', monospace;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .responsive-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .game-container {
+            position: relative;
+            padding: 6px;
+            background: linear-gradient(135deg, #7b2cbf, #ff0055, #3c096c, #240046);
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(123, 44, 191, 0.5);
+            transform-origin: center center;
+        }
+
+        .game-frame {
+            position: relative;
+            width: 1024px;
+            height: 576px;
+            background-color: #120824;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(14, 6, 28, 0.97);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            text-align: center;
+            padding: 30px;
+            backdrop-filter: blur(8px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #ff0055;
+            text-shadow: 0 0 20px rgba(255, 0, 85, 0.6), 0 0 40px rgba(123, 44, 191, 0.5);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #b39ddb;
+            margin-bottom: 25px;
+            letter-spacing: 3px;
+        }
+
+        .how-to-play-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 95%;
+            max-width: 800px;
+            margin-bottom: 25px;
+        }
+
+        .control-card {
+            background: rgba(123, 44, 191, 0.08);
+            border: 1px solid rgba(255, 0, 85, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: left;
+        }
+
+        .control-card h3 {
+            color: #ff0055;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            border-bottom: 1px solid rgba(255, 0, 85, 0.2);
+            padding-bottom: 5px;
+        }
+
+        .control-card li {
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            color: #e2d1f9;
+            line-height: 1.4;
+            list-style: none;
+        }
+
+        .control-card b {
+            color: #fff;
+            background: rgba(123, 44, 191, 0.4);
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid #7b2cbf;
+        }
+
+        .mission-box {
+            grid-column: span 2;
+            background: rgba(255, 0, 85, 0.04);
+            border: 1px dashed #ff0055;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #ff0055;
+            line-height: 1.4;
+        }
+
+        .btn {
+            background: linear-gradient(90deg, #5a189a, #ff0055);
+            border: none;
+            color: white;
+            padding: 14px 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
+            text-transform: uppercase;
+            transition: all 0.2s;
+            letter-spacing: 2px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 35px rgba(255, 0, 85, 0.7);
+        }
+
+        .score-board {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #e2d1f9;
+        }
+        
+        .score-highlight {
+            color: #ff0055;
+            font-weight: bold;
+            font-size: 2.5rem;
+            text-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+        }
+
+        .mobile-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .m-btn {
+            width: 65px;
+            height: 65px;
+            background: rgba(18, 8, 36, 0.9);
+            border: 2px solid #7b2cbf;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.6rem;
+            color: #7b2cbf;
+            box-shadow: 0 0 15px rgba(123, 44, 191, 0.2);
+            cursor: pointer;
+        }
+
+        .m-btn:active {
+            background: #ff0055;
+            border-color: #ff0055;
+            color: #fff;
+            transform: scale(0.9);
+            box-shadow: 0 0 20px #ff0055;
+        }
+
+        .action-btn {
+            width: 110px;
+            border-radius: 15px;
+            border-color: #ff0055;
+            color: #ff0055;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="responsive-wrapper">
+        <div class="game-container" id="gameContainer">
+            <div class="game-frame">
+                
+                <div id="startScreen" class="overlay">
+                    <h1>Neural Hijack</h1>
+                    <p class="subtitle">Neural Network Infiltration</p>
+                    
+                    <div class="how-to-play-container">
+                        <div class="control-card">
+                            <h3>💻 DESKTOP CONTROLS</h3>
+                            <ul>
+                                <li>• Move: <b>A</b> / <b>D</b> or <b>←</b> / <b>→</b></li>
+                                <li>• **DOUBLE JUMP**: Press <b>W / Space</b> twice!</li>
+                                <li>• Steal / Deposit: Press <b>E</b> Key</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="control-card">
+                            <h3>📱 MOBILE CONTROLS</h3>
+                            <ul>
+                                <li>• Move Left/Right: Tap <b>←</b> and <b>→</b></li>
+                                <li>• **DOUBLE JUMP**: Tap <b>↑</b> twice in mid-air!</li>
+                                <li>• Action (Steal/Upload): Tap <b>ACTION</b></li>
+                            </ul>
+                        </div>
+
+                        <div class="mission-box">
+                            🔒 <b>OBJECTIVE TARGET: 100 SCORE</b><br>
+                            Approach the Mech-Watcher Drones from behind, steal their memory drives, then upload the data into the <b>DATA SERVER (Purple Core)</b>. Achieve the goal before your neural brain overloaded!
+                        </div>
+                    </div>
+
+                    <button class="btn" id="startBtn">Infiltrate System</button>
+                </div>
+
+                <div id="gameOverScreen" class="overlay hidden">
+                    <h1 id="overTitle" style="color: #ff0055; text-shadow: 0 0 25px #ff0055;">💀 SYSTEM FAILURE 💀</h1>
+                    <p id="deathReason" style="color: #b39ddb; font-size: 1.1rem; margin-bottom: 20px;"></p>
+                    
+                    <div class="score-board">
+                        <p>Total Data Hijacked: <span class="score-highlight" id="finalScore">0</span> / 100</p>
+                    </div>
+
+                    <button class="btn" id="restartBtn">Reboot Core</button>
+                </div>
+
+                <canvas id="gameCanvas" width="1024" height="576"></canvas>
+
+                <div id="mobileControls" class="mobile-controls">
+                    <div class="control-group">
+                        <div class="m-btn" id="btnLeft">←</div>
+                        <div class="m-btn" id="btnRight">→</div>
+                    </div>
+                    <div class="control-group">
+                        <div class="m-btn action-btn" id="btnAction">Action</div>
+                        <div class="m-btn" id="btnJump">↑</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameContainer = document.getElementById('gameContainer');
+
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const mobileControls = document.getElementById('mobileControls');
+        const deathReasonText = document.getElementById('deathReason');
+        const overTitle = document.getElementById('overTitle');
+
+        // Dynamic Scaling untuk penyesuaian layar HP / Desktop otomatis
+        function resizeGame() {
+            const baseWidth = 1024;
+            const baseHeight = 576;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            let scale = Math.min(windowWidth / baseWidth, windowHeight / baseHeight);
+            if (scale > 1) scale = 1;
+            gameContainer.style.transform = `scale(${scale})`;
+        }
+        window.addEventListener('resize', resizeGame);
+        window.addEventListener('load', resizeGame);
+        resizeGame();
+
+        // Cek kapabilitas device & tampilkan kontrol secara dinamis
+        let isMobile = false;
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth <= 800) {
+            isMobile = true;
+            mobileControls.classList.remove('hidden');
+        } else {
+            mobileControls.classList.add('hidden'); // Sembunyikan jika murni desktop
+        }
+
+        // Input data mapper
+        const input = { left: false, right: false, jump: false, action: false };
+        
+        window.addEventListener('keydown', e => {
+            if (e.key === 'a' || e.key === 'ArrowLeft') input.left = true;
+            if (e.key === 'd' || e.key === 'ArrowRight') input.right = true;
+            if (e.key === 'w' || e.key === ' ' || e.key === 'ArrowUp') input.jump = true;
+            if (e.key === 'e' || e.key === 'q') input.action = true;
+        });
+
+        window.addEventListener('keyup', e => {
+            if (e.key === 'a' || e.key === 'ArrowLeft') input.left = false;
+            if (e.key === 'd' || e.key === 'ArrowRight') input.right = false;
+            if (e.key === 'w' || e.key === ' ' || e.key === 'ArrowUp') input.jump = false;
+            if (e.key === 'e' || e.key === 'q') input.action = false;
+        });
+
+        // Setup Event Listener Tombol Mobile Touch
+        const setupMobileButton = (id, property) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            
+            // Ganti mousedown/mouseup dengan touch agar responsif di HP
+            el.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                input[property] = true;
+            }, { passive: false });
+
+            el.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                input[property] = false;
+            }, { passive: false });
+            
+            el.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                input[property] = false;
+            }, { passive: false });
+        };
+
+        setupMobileButton('btnLeft', 'left');
+        setupMobileButton('btnRight', 'right');
+        setupMobileButton('btnJump', 'jump');
+        setupMobileButton('btnAction', 'action');
+
+        // Sound Engine (Web Audio API)
+        let audioCtx = null;
+        function playSound(type) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'steal') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1500, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+                } else if (type === 'deposit') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(1800, audioCtx.currentTime + 0.35);
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.35);
+                } else if (type === 'alert') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(320, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+                } else if (type === 'gameover') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 0.6);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+                } else if (type === 'jump') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(650, audioCtx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+                } else if (type === 'victory') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+                    osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+                }
+            } catch(e) {}
+        }
+
+        // Game Core States
+        let gameActive = false;
+        let score = 0;
+        let brainCapacity = 0;
+        let particles = [];
+        let ghostTrails = [];
+        let gameFrameCount = 0;
+
+        const gravity = 0.45;
+        let lastJumpState = false;
+        let lastActionState = false;
+
+        // Player Model
+        let player = {
+            x: 100, y: 400, vx: 0, vy: 0, width: 28, height: 42,
+            isGrounded: false, facing: 'right', jumpCount: 0, maxJumps: 2
+        };
+
+        // Static Level Boundaries
+        const platforms = [
+            { x: 0, y: 520, width: 1024, height: 56 }, 
+            { x: 0, y: 0, width: 20, height: 576 },   
+            { x: 1004, y: 0, width: 20, height: 576 }, 
+            { x: 150, y: 400, width: 220, height: 16 },
+            { x: 450, y: 300, width: 250, height: 16 },
+            { x: 780, y: 410, width: 150, height: 16 },
+            { x: 180, y: 200, width: 200, height: 16 },
+            { x: 750, y: 210, width: 180, height: 16 }
+        ];
+
+        const serverPod = { x: 550, y: 245, width: 45, height: 55, pulse: 0 };
+        let guards = [];
+
+        function spawnGuards() {
+            guards = [
+                { x: 180, y: 355, minX: 160, maxX: 340, speed: 0.6, direction: 1, height: 35, width: 35, hasMemory: true, bobOffset: Math.random()*10 },
+                { x: 480, y: 255, minX: 460, maxX: 670, speed: 0.5, direction: -1, height: 35, width: 35, hasMemory: true, bobOffset: Math.random()*10 },
+                { x: 800, y: 365, minX: 780, maxX: 910, speed: 0.7, direction: 1, height: 35, width: 35, hasMemory: true, bobOffset: Math.random()*10 },
+                { x: 200, y: 155, minX: 190, maxX: 360, speed: 0.5, direction: 1, height: 35, width: 35, hasMemory: true, bobOffset: Math.random()*10 },
+                { x: 760, y: 165, minX: 750, maxX: 910, speed: 0.6, direction: -1, height: 35, width: 35, hasMemory: true, bobOffset: Math.random()*10 },
+                { x: 300, y: 475, minX: 100, maxX: 900, speed: 0.8, direction: -1, height: 35, width: 35, hasMemory: true, bobOffset: Math.random()*10 }
+            ];
+        }
+
+        function createParticles(x, y, color, count=10) {
+            for(let i=0; i<count; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: (Math.random() - 0.5) * 5,
+                    radius: Math.random() * 3.5 + 1,
+                    alpha: 1,
+                    color: color
+                });
+            }
+        }
+
+        function initGame() {
+            score = 0;
+            brainCapacity = 0;
+            particles = [];
+            ghostTrails = [];
+            player.x = 80;
+            player.y = 450;
+            player.vx = 0;
+            player.vy = 0;
+            player.facing = 'right';
+            player.isGrounded = false;
+            player.jumpCount = 0;
+            spawnGuards();
+            gameActive = true;
+            
+            // Mengatur visibilitas tombol mobile saat ronde game aktif
+            if (isMobile) {
+                mobileControls.classList.remove('hidden');
+            } else {
+                mobileControls.classList.add('hidden');
+            }
+        }
+
+        function checkCollision(r1, r2) {
+            return r1.x < r2.x + r2.width && r1.x + r1.width > r2.x &&
+                   r1.y < r2.y + r2.height && r1.y + r1.height > r2.y;
+        }
+
+        function triggerGameOver(reason, victory = false) {
+            gameActive = false;
+            mobileControls.classList.add('hidden'); // Sembunyikan tombol saat Game Over
+            
+            if (victory) {
+                playSound('victory');
+                overTitle.innerText = "🏆 SYSTEM HACKED 🏆";
+                overTitle.style.color = "#00f5d4";
+                overTitle.style.textShadow = "0 0 25px #00f5d4";
+                deathReasonText.innerText = "Success! You have safely delivered the stolen memory cores!";
+                restartBtn.innerText = "Infiltrate Again";
+            } else {
+                playSound('gameover');
+                overTitle.innerText = "💀 SYSTEM FAILURE 💀";
+                overTitle.style.color = "#ff0055";
+                overTitle.style.textShadow = "0 0 25px #ff0055";
+                deathReasonText.innerText = reason;
+                restartBtn.innerText = "Reboot Core";
+            }
+            document.getElementById('finalScore').innerText = score;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function update() {
+            if (!gameActive) return;
+            gameFrameCount++;
+
+            if (brainCapacity > 0) {
+                brainCapacity += 0.04; 
+                if (brainCapacity >= 100) {
+                    brainCapacity = 100;
+                    triggerGameOver("⚡ BRAIN OVERLOAD! Memory payload expanded beyond legal limits!");
+                    return;
+                }
+            }
+
+            if (input.left) { player.vx = -4.8; player.facing = 'left'; }
+            else if (input.right) { player.vx = 4.8; player.facing = 'right'; }
+            else player.vx = 0;
+
+            if (input.jump && !lastJumpState) {
+                if (player.isGrounded) {
+                    player.vy = -10;
+                    player.isGrounded = false;
+                    player.jumpCount = 1;
+                    playSound('jump');
+                    createParticles(player.x + player.width/2, player.y + player.height, '#9d4edd', 6);
+                } else if (player.jumpCount < player.maxJumps) {
+                    player.vy = -9.5;
+                    player.jumpCount++;
+                    playSound('jump');
+                    createParticles(player.x + player.width/2, player.y + player.height, '#00f5d4', 12);
+                }
+            }
+            lastJumpState = input.jump;
+
+            player.vy += gravity;
+
+            if (Math.abs(player.vx) > 0 || !player.isGrounded) {
+                if (gameFrameCount % 4 === 0) {
+                    ghostTrails.push({ x: player.x, y: player.y, width: player.width, height: player.height, alpha: 0.5 });
+                }
+            }
+
+            for (let i = ghostTrails.length - 1; i >= 0; i--) {
+                ghostTrails[i].alpha -= 0.04;
+                if (ghostTrails[i].alpha <= 0) ghostTrails.splice(i, 1);
+            }
+
+            player.x += player.vx;
+            platforms.forEach(p => {
+                if (checkCollision(player, p)) {
+                    if (player.vx > 0) player.x = p.x - player.width;
+                    if (player.vx < 0) player.x = p.x + p.width;
+                }
+            });
+
+            player.y += player.vy;
+            let onPlatform = false;
+            platforms.forEach(p => {
+                if (checkCollision(player, p)) {
+                    if (player.vy > 0) {
+                        player.y = p.y - player.height;
+                        player.vy = 0;
+                        onPlatform = true;
+                    } else if (player.vy < 0) {
+                        player.y = p.y + p.height;
+                        player.vy = 0;
+                    }
+                }
+            });
+            
+            if (onPlatform) {
+                player.isGrounded = true;
+                player.jumpCount = 0;
+            } else {
+                player.isGrounded = false;
+            }
+
+            if (player.y > canvas.height) {
+                triggerGameOver("🕳️ SYSTEM DROPPED! Fell through the network void data streams.");
+                return;
+            }
+
+            guards.forEach((g) => {
+                g.x += g.speed * g.direction;
+                if (g.x <= g.minX) { g.x = g.minX; g.direction = 1; }
+                if (g.x >= g.maxX) { g.x = g.maxX; g.direction = -1; }
+
+                g.currentY = g.y + Math.sin((gameFrameCount / 10) + g.bobOffset) * 4;
+
+                let tempHitbox = { x: g.x, y: g.currentY, width: g.width, height: g.height };
+
+                if (checkCollision(player, tempHitbox)) {
+                    if (g.hasMemory) {
+                        let guardFacingRight = g.direction > 0;
+                        let playerOnBehind = guardFacingRight ? (player.x < g.x) : (player.x > g.x);
+
+                        if (!playerOnBehind) {
+                            triggerGameOver("🚨 MECH SENSOR ALERT! Guard scanner drone detected your profile face!");
+                        }
+                    }
+                }
+            });
+
+            if (input.action && !lastActionState) {
+                let actionTriggered = false;
+
+                if (checkCollision(player, serverPod)) {
+                    if (brainCapacity > 0) {
+                        let pointsToAdd = Math.ceil(brainCapacity / 1.2); 
+                        score += pointsToAdd;
+                        if (score >= 100) {
+                            score = 100;
+                            triggerGameOver("", true);
+                            return;
+                        }
+                        brainCapacity = 0;
+                        playSound('deposit');
+                        createParticles(serverPod.x + serverPod.width/2, serverPod.y + serverPod.height/2, '#00f5d4', 25);
+                        actionTriggered = true;
+                    }
+                }
+
+                if (!actionTriggered) {
+                    guards.forEach(g => {
+                        if (g.hasMemory) {
+                            let distance = Math.hypot((player.x + player.width/2) - (g.x + g.width/2), (player.y + player.height/2) - (g.currentY + g.height/2));
+                            if (distance < 120) {
+                                let guardFacingRight = g.direction > 0;
+                                let playerOnBehind = guardFacingRight ? (player.x < g.x) : (player.x > g.x);
+
+                                if (playerOnBehind) {
+                                    g.hasMemory = false;
+                                    g.speed = 0.1; 
+                                    
+                                    score += 30;
+                                    if (score >= 100) {
+                                        score = 100;
+                                        triggerGameOver("", true);
+                                        return;
+                                    }
+
+                                    brainCapacity += 20; 
+                                    if (brainCapacity > 100) brainCapacity = 100;
+                                    playSound('steal');
+                                    createParticles(g.x + g.width/2, g.currentY + g.height/2, '#ff0055', 20);
+                                    actionTriggered = true;
+                                }
+                            }
+                        }
+                    });
+                }
+
+                if (!actionTriggered) playSound('alert');
+            }
+            lastActionState = input.action;
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.alpha -= 0.025;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            serverPod.pulse += 0.05;
+        }
+
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = '#120824';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            platforms.forEach(p => {
+                ctx.fillStyle = 'rgba(123, 44, 191, 0.12)';
+                ctx.fillRect(p.x, p.y, p.width, p.height);
+                ctx.strokeStyle = '#3c096c'; ctx.lineWidth = 2;
+                ctx.strokeRect(p.x, p.y, p.width, p.height);
+            });
+
+            ctx.save();
+            let pSize = Math.sin(serverPod.pulse) * 6;
+            ctx.shadowColor = '#9d4edd'; ctx.shadowBlur = 18;
+            ctx.fillStyle = '#5a189a';
+            ctx.fillRect(serverPod.x, serverPod.y, serverPod.width, serverPod.height);
+            ctx.fillStyle = '#00f5d4';
+            ctx.fillRect(serverPod.x + 8, serverPod.y + 12 + pSize/2, serverPod.width - 16, 12);
+            ctx.restore();
+
+            guards.forEach(g => {
+                ctx.save();
+                let gY = g.currentY || g.y;
+
+                if (g.hasMemory) {
+                    ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 12;
+                    ctx.fillStyle = '#240046';
+                    ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 3;
+                    
+                    ctx.beginPath();
+                    ctx.arc(g.x + g.width/2, gY + g.height/2, g.width/2, 0, Math.PI*2);
+                    ctx.fill(); ctx.stroke();
+
+                    ctx.fillStyle = '#ff0055';
+                    ctx.beginPath();
+                    let eyeXOffset = g.direction > 0 ? 5 : -5;
+                    ctx.arc(g.x + g.width/2 + eyeXOffset, gY + g.height/2, 5, 0, Math.PI*2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'rgba(255, 0, 85, 0.12)';
+                    ctx.beginPath();
+                    if (g.direction > 0) {
+                        ctx.moveTo(g.x + g.width, gY + g.height/2);
+                        ctx.lineTo(g.x + g.width + 50, gY - 15);
+                        ctx.lineTo(g.x + g.width + 50, gY + g.height + 15);
+                    } else {
+                        ctx.moveTo(g.x, gY + g.height/2);
+                        ctx.lineTo(g.x - 50, gY - 15);
+                        ctx.lineTo(g.x - 50, gY + g.height + 15);
+                    }
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = '#333344'; ctx.strokeStyle = '#555566'; ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(g.x + g.width/2, gY + g.height/2, g.width/2, 0, Math.PI*2);
+                    ctx.fill(); ctx.stroke();
+                    ctx.strokeStyle = '#555566'; ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(g.x+12, gY+12); ctx.lineTo(g.x+22, gY+22);
+                    ctx.moveTo(g.x+22, gY+12); ctx.lineTo(g.x+12, gY+22);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            });
+
+            ghostTrails.forEach(t => {
+                ctx.save(); ctx.globalAlpha = t.alpha;
+                ctx.fillStyle = '#7b2cbf';
+                ctx.fillRect(t.x, t.y, t.width, t.height);
+                ctx.restore();
+            });
+
+            particles.forEach(p => {
+                ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
+                ctx.restore();
+            });
+
+            ctx.save();
+            ctx.shadowColor = '#00f5d4'; ctx.shadowBlur = 14;
+            ctx.fillStyle = '#1a0933';
+            ctx.strokeStyle = '#00f5d4'; ctx.lineWidth = 2;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.strokeRect(player.x, player.y, player.width, player.height);
+
+            ctx.fillStyle = 'rgba(123, 44, 191, 0.7)';
+            let jubahWidth = 10;
+            let wave = Math.sin(gameFrameCount * 0.15) * 4;
+            if (player.facing === 'right') {
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y + 10);
+                ctx.lineTo(player.x - jubahWidth + wave, player.y + player.height - 5);
+                ctx.lineTo(player.x, player.y + player.height - 2);
+                ctx.fill();
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(player.x + player.width, player.y + 10);
+                ctx.lineTo(player.x + player.width + jubahWidth + wave, player.y + player.height - 5);
+                ctx.lineTo(player.x + player.width, player.y + player.height - 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = '#ff0055';
+            if (player.facing === 'right') {
+                ctx.fillRect(player.x + player.width - 10, player.y + 8, 8, 5);
+            } else {
+                ctx.fillRect(player.x + 2, player.y + 8, 8, 5);
+            }
+            ctx.restore();
+
+            // Render HUD teks kapasitas otak & skor di layar atas
+            ctx.fillStyle = '#fff'; ctx.font = "14px 'Consolas', monospace";
+            ctx.fillText(`SCORE DATA: ${score}/100`, 35, 40);
+            
+            ctx.fillStyle = brainCapacity > 75 ? '#ff0055' : '#00f5d4';
+            ctx.fillText(`NEURAL LOAD: ${Math.floor(brainCapacity)}%`, 35, 65);
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // Penanganan klik layar menu awal
+        startBtn.addEventListener('click', () => {
+            startScreen.classList.add('hidden');
+            initGame();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            gameOverScreen.classList.add('hidden');
+            initGame();
+        });
+
+        // Loop utama inisialisasi awal
+        loop();
+    </script>
+</body>
+</html>
