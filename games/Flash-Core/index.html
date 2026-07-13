@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flash Core</title>
+    <style>
+        :root {
+            --purple: #8a2be2;
+            --purple-glow: #bf55ec;
+            --sky-blue: #00bfff;
+            --sky-glow: #33ccff;
+            --bg-dark: #060713;
+            --panel-bg: rgba(7, 8, 23, 0.95);
+            --neon-green: #39ff14;
+            --neon-red: #ff0055;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            font-family: 'Courier New', Courier, monospace, sans-serif;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.25;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            max-height: 850px;
+            position: relative;
+            z-index: 2;
+            background: rgba(13, 14, 33, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-left: 2px solid var(--purple);
+            border-right: 2px solid var(--sky-blue);
+            box-shadow: 0 0 30px rgba(138, 43, 226, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 25px;
+        }
+
+        .shake {
+            animation: screenShake 0.25s linear;
+        }
+
+        @keyframes screenShake {
+            0% { transform: translate(0, 0); }
+            20% { transform: translate(-8px, 5px); }
+            40% { transform: translate(6px, -6px); }
+            60% { transform: translate(-5px, 3px); }
+            80% { transform: translate(4px, 4px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            text-align: center;
+            z-index: 10;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #ffffff;
+            text-shadow: 0 0 10px var(--purple-glow), 0 0 20px var(--purple);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-weight: 900;
+        }
+
+        h2 {
+            font-size: 2.2rem;
+            color: var(--neon-red);
+            text-shadow: 0 0 15px var(--neon-red);
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            color: var(--sky-blue);
+            text-shadow: 0 0 8px var(--sky-glow);
+            font-weight: bold;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+        }
+
+        .instructions-panel {
+            background: rgba(5, 6, 15, 0.9);
+            border: 1px solid rgba(0, 191, 255, 0.3);
+            border-left: 4px solid var(--sky-blue);
+            padding: 18px;
+            border-radius: 8px;
+            text-align: left;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+
+        .instructions-panel p {
+            font-weight: bold;
+            color: var(--sky-blue);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .instructions-panel ul { list-style-type: none; }
+        .instructions-panel li {
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            color: #d1d5db;
+            display: flex;
+            align-items: flex-start;
+        }
+        .instructions-panel li::before {
+            content: "▶";
+            color: var(--purple-glow);
+            margin-right: 8px;
+            font-size: 0.7rem;
+            margin-top: 2px;
+        }
+
+        .cyber-btn {
+            background: transparent;
+            color: #ffffff;
+            border: 2px solid var(--sky-blue);
+            padding: 14px 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.2);
+            border-radius: 4px;
+        }
+        .cyber-btn:hover, .cyber-btn:active {
+            background: var(--sky-blue);
+            color: #000000;
+            box-shadow: 0 0 25px var(--sky-glow);
+        }
+        .cyber-btn-retry { border-color: var(--purple); box-shadow: 0 0 15px rgba(138, 43, 226, 0.2); }
+        .cyber-btn-retry:hover, .cyber-btn-retry:active {
+            background: var(--purple);
+            color: #ffffff;
+            box-shadow: 0 0 25px var(--purple-glow);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(13, 14, 33, 0.85);
+            border: 1px solid rgba(138, 43, 226, 0.2);
+            border-radius: 6px;
+        }
+        .dashboard-box { display: flex; flex-direction: column; }
+        .dashboard-label { color: rgba(255, 255, 255, 0.35); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+        .dashboard-value { font-size: 1.5rem; font-weight: bold; color: var(--sky-blue); }
+
+        #timer-wrapper {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-top: 15px;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        #timer-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--sky-blue), var(--purple-glow));
+            transition: width 0.1s linear;
+        }
+
+        #status-display {
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+            margin: 15px 0;
+            letter-spacing: 2px;
+            color: var(--purple-glow);
+            text-transform: uppercase;
+            min-height: 24px;
+        }
+
+        #grid-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            position: relative;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-width: 350px;
+        }
+        .tile {
+            background: rgba(138, 43, 226, 0.04);
+            border: 1px solid rgba(138, 43, 226, 0.25);
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
+        }
+        .tile::after {
+            content: '';
+            position: absolute;
+            top: 4px; left: 4px; right: 4px; bottom: 4px;
+            border: 1px dashed rgba(0, 191, 255, 0.1);
+            border-radius: 6px;
+            pointer-events: none;
+        }
+        .tile.bot-flash {
+            background: var(--sky-blue) !important;
+            border-color: #ffffff !important;
+            box-shadow: 0 0 35px var(--sky-glow), inset 0 0 15px #ffffff !important;
+        }
+        .tile.player-flash {
+            background: var(--purple) !important;
+            border-color: #ffffff !important;
+            box-shadow: 0 0 35px var(--purple-glow), inset 0 0 15px #ffffff !important;
+        }
+        .tile:active { transform: scale(0.96); }
+
+        .score-burst {
+            position: absolute;
+            color: var(--neon-green);
+            font-weight: bold;
+            font-size: 1.5rem;
+            pointer-events: none;
+            animation: floatingBurst 0.8s ease-out forwards;
+            text-shadow: 0 0 8px var(--neon-green);
+            z-index: 20;
+        }
+        @keyframes floatingBurst {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
+            100% { opacity: 0; transform: translate(-50%, -120%) scale(1.3); }
+        }
+
+        #rank-display {
+            font-size: 1.1rem;
+            color: var(--neon-green);
+            text-shadow: 0 0 8px var(--neon-green);
+            letter-spacing: 2px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.15);
+            letter-spacing: 2px;
+            margin-top: 10px;
+        }
+
+        @media (max-height: 650px) {
+            h1 { font-size: 1.8rem; }
+            .subtitle { margin-bottom: 5px; }
+            .instructions-panel { padding: 10px; margin-bottom: 10px; }
+            .grid { gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="game-container">
+        
+        <div id="welcome-screen" class="screen">
+            <h1>Flash Core</h1>
+            <div class="subtitle">OVERDRIVE ENGINE v3.0</div>
+            
+            <div class="instructions-panel">
+                <p>TRANSMISSION PROTOCOL:</p>
+                <ul>
+                    <li>Watch and memorize the Sky Blue flashing path sequence.</li>
+                    <li>Replicate the exact matrix path when your turn goes Purple.</li>
+                    <li>Every successfully cleared round awards +20 Score points.</li>
+                    <li>Warning: The action timer bar will decrease faster each level!</li>
+                </ul>
+            </div>
+            <button class="cyber-btn" onclick="initiateGameEngine()">Boot System</button>
+        </div>
+
+        <!-- GAME OVER SCREEN -->
+        <div id="gameover-screen" class="screen hidden">
+            <h2>SYSTEM CORRUPTED</h2>
+            <p style="letter-spacing: 1px; color:#ff0055; font-size:0.85rem;">Neural connection snapped entirely.</p>
+            
+            <div style="margin: 20px 0;">
+                <span class="dashboard-label">Final Sync Score</span>
+                <span id="final-score" style="font-size: 3.5rem; font-weight: bold; color: var(--sky-blue); text-shadow:0 0 15px var(--sky-glow); display:block;">0</span>
+                <span class="dashboard-label">Assigned Rank</span>
+                <div id="rank-display">DUMMY_UNIT</div>
+            </div>
+            <button class="cyber-btn cyber-btn-retry" onclick="initiateGameEngine()">Reboot Matrix</button>
+        </div>
+
+        <!-- HUD INTERFACE -->
+        <header>
+            <div class="dashboard-box">
+                <span class="dashboard-label">SCORE LEVEL</span>
+                <span id="score-val" class="dashboard-value">0</span>
+            </div>
+            <div class="dashboard-box" style="text-align: right;">
+                <span class="dashboard-label">MAX RECORD</span>
+                <span id="highscore-val" class="dashboard-value" style="color: var(--purple-glow); text-shadow: 0 0 8px rgba(191,85,236,0.5);">0</span>
+            </div>
+        </header>
+
+        <div>
+            <div id="status-display">STANDBY MODE</div>
+            <div id="timer-wrapper"><div id="timer-bar"></div></div>
+        </div>
+
+        <!-- INTERACTIVE GRID FRAME -->
+        <div id="grid-wrapper">
+            <div class="grid" id="interactive-grid">
+                <div class="tile" data-id="0" onmousedown="captureInput(event, 0)" ontouchstart="captureInput(event, 0)"></div>
+                <div class="tile" data-id="1" onmousedown="captureInput(event, 1)" ontouchstart="captureInput(event, 1)"></div>
+                <div class="tile" data-id="2" onmousedown="captureInput(event, 2)" ontouchstart="captureInput(event, 2)"></div>
+                <div class="tile" data-id="3" onmousedown="captureInput(event, 3)" ontouchstart="captureInput(event, 3)"></div>
+                <div class="tile" data-id="4" onmousedown="captureInput(event, 4)" ontouchstart="captureInput(event, 4)"></div>
+                <div class="tile" data-id="5" onmousedown="captureInput(event, 5)" ontouchstart="captureInput(event, 5)"></div>
+                <div class="tile" data-id="6" onmousedown="captureInput(event, 6)" ontouchstart="captureInput(event, 6)"></div>
+                <div class="tile" data-id="7" onmousedown="captureInput(event, 7)" ontouchstart="captureInput(event, 7)"></div>
+                <div class="tile" data-id="8" onmousedown="captureInput(event, 8)" ontouchstart="captureInput(event, 8)"></div>
+            </div>
+        </div>
+
+        <footer>ENCRYPTED NETWORK DATA // PROTECTION PROT</footer>
+    </div>
+
+    <script>
+        let targetSequence = [];
+        let userSequence = [];
+        let score = 0;
+        let highScore = 0;
+        let botActive = false;
+        let sessionActive = false;
+        
+        let countdownInterval;
+        let totalAllowedTime = 7000; 
+        let currentTimeLeft = 0;
+
+        const gameContainer = document.getElementById('game-container');
+        const gameTiles = document.querySelectorAll('.tile');
+        const scoreUI = document.getElementById('score-val');
+        const highscoreUI = document.getElementById('highscore-val');
+        const statusUI = document.getElementById('status-display');
+        const timerBar = document.getElementById('timer-bar');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const gameoverScreen = document.getElementById('gameover-screen');
+        const finalScoreUI = document.getElementById('final-score');
+        const rankUI = document.getElementById('rank-display');
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const synthScale = [220.00, 246.94, 277.18, 293.66, 329.63, 369.99, 392.00, 440.00, 493.88];
+
+        function playSynthWave(frequency, shape, duration) {
+            try {
+                if (audioContext.state === 'suspended') audioContext.resume();
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = shape || 'sine';
+                osc.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                gain.gain.setValueAtTime(0.12, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.start();
+                osc.stop(audioContext.currentTime + duration);
+            } catch(e){}
+        }
+
+        function calculateRank(finalScore) {
+            if (finalScore <= 40) return "ROOKIE_SCRIPTER";
+            if (finalScore <= 120) return "GRID_RUNNER";
+            if (finalScore <= 220) return "CYBER_ARCHITECT";
+            return "DEI_EX_MACHINA (GOD MODE)";
+        }
+
+        function triggerScreenJuiceEffects(isFailure) {
+            gameContainer.classList.add('shake');
+            setTimeout(() => gameContainer.classList.remove('shake'), 260);
+            if(!isFailure) {
+                playSynthWave(440, 'sine', 0.08);
+                setTimeout(() => playSynthWave(659, 'sine', 0.1), 70);
+            } else {
+                playSynthWave(130, 'sawtooth', 0.3);
+                setTimeout(() => playSynthWave(85, 'sawtooth', 0.4), 140);
+            }
+        }
+
+        function spawnFloatingText(clientX, clientY) {
+            const burst = document.createElement('div');
+            burst.className = 'score-burst';
+            burst.textContent = '+20';
+            
+            const wrapperRect = document.getElementById('grid-wrapper').getBoundingClientRect();
+            burst.style.left = `${clientX - wrapperRect.left}px`;
+            burst.style.top = `${clientY - wrapperRect.top}px`;
+            
+            document.getElementById('grid-wrapper').appendChild(burst);
+            setTimeout(() => burst.remove(), 800);
+        }
+
+        function initiateGameEngine() {
+            targetSequence = [];
+            score = 0;
+            scoreUI.textContent = score;
+            timerBar.style.width = '0%';
+            clearInterval(countdownInterval);
+            
+            welcomeScreen.classList.add('hidden');
+            gameoverScreen.classList.add('hidden');
+            sessionActive = true;
+            executeRoundCycle();
+        }
+
+        function executeRoundCycle() {
+            userSequence = [];
+            botActive = true;
+            timerBar.style.width = '0%';
+            clearInterval(countdownInterval);
+            
+            statusUI.textContent = "MATRIX STREAMING...";
+            statusUI.style.color = "var(--sky-blue)";
+
+            targetSequence.push(Math.floor(Math.random() * 9));
+            
+            let i = 0;
+            let dynamicInterval = Math.max(280, 580 - (targetSequence.length * 20));
+            
+            const playbackLoop = setInterval(() => {
+                if (!sessionActive) {
+                    clearInterval(playbackLoop);
+                    return;
+                }
+
+                flashGridTile(targetSequence[i], 'bot-flash');
+                playSynthWave(synthScale[targetSequence[i]], 'sine', 0.22);
+                i++;
+
+                if (i >= targetSequence.length) {
+                    clearInterval(playbackLoop);
+                    setTimeout(() => {
+                        botActive = false;
+                        statusUI.textContent = "YOUR TURN. MATCH!";
+                        statusUI.style.color = "var(--purple-glow)";
+                        startCountdownTimer();
+                    }, 350);
+                }
+            }, dynamicInterval);
+        }
+
+        function startCountdownTimer() {
+            clearInterval(countdownInterval);
+            totalAllowedTime = Math.max(2200, 7500 - (targetSequence.length * 350));
+            currentTimeLeft = totalAllowedTime;
+
+            countdownInterval = setInterval(() => {
+                currentTimeLeft -= 50;
+                let percentage = (currentTimeLeft / totalAllowedTime) * 100;
+                timerBar.style.width = `${percentage}%`;
+
+                if (currentTimeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    terminateSession();
+                }
+            }, 50);
+        }
+
+        function flashGridTile(id, className) {
+            if(gameTiles[id]) {
+                gameTiles[id].classList.add(className);
+                setTimeout(() => gameTiles[id].classList.remove(className), 250);
+            }
+        }
+
+        function captureInput(e, id) {
+            if (botActive || !sessionActive) return;
+            if (e) e.preventDefault();
+
+            flashGridTile(id, 'player-flash');
+            playSynthWave(synthScale[id], 'triangle', 0.2);
+            
+            userSequence.push(id);
+            verifyUserSequence(userSequence.length - 1, e);
+        }
+
+        function verifyUserSequence(currentIndex, eventObj) {
+            if (userSequence[currentIndex] !== targetSequence[currentIndex]) {
+                terminateSession();
+                return;
+            }
+
+            if (userSequence.length === targetSequence.length) {
+                clearInterval(countdownInterval);
+                botActive = true; 
+                score += 20;
+                scoreUI.textContent = score;
+
+                if (score > highScore) {
+                    highScore = score;
+                    highscoreUI.textContent = highScore;
+                }
+
+                if(eventObj) {
+                    let posX = eventObj.clientX || (eventObj.touches && eventObj.touches[0] ? eventObj.touches[0].clientX : null);
+                    let posY = eventObj.clientY || (eventObj.touches && eventObj.touches[0] ? eventObj.touches[0].clientY : null);
+                    if(posX && posY) spawnFloatingText(posX, posY);
+                }
+
+                setTimeout(() => {
+                    triggerScreenJuiceEffects(false);
+                    executeRoundCycle();
+                }, 850);
+            }
+        }
+
+        function terminateSession() {
+            sessionActive = false;
+            clearInterval(countdownInterval);
+            timerBar.style.width = '0%';
+            triggerScreenJuiceEffects(true);
+            
+            finalScoreUI.textContent = score;
+            rankUI.textContent = calculateRank(score);
+            
+            gameoverScreen.classList.remove('hidden');
+            statusUI.textContent = "SYNCHRONIZATION FAILURE";
+            statusUI.style.color = "var(--neon-red)";
+        }
+
+        // Background Particles
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const gridParticles = [];
+        for (let x = 0; x < 35; x++) {
+            gridParticles.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                speed: 0.2 + Math.random() * 0.4,
+                size: 1 + Math.random() * 1.5
+            });
+        }
+        function updateBackgroundStream() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "rgba(0, 191, 255, 0.15)";
+            gridParticles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                p.y -= p.speed;
+                if (p.y < 0) { p.y = canvas.height; p.x = Math.random() * canvas.width; }
+            });
+            requestAnimationFrame(updateBackgroundStream);
+        }
+        updateBackgroundStream();
+    </script>
+</body>
+</html>
