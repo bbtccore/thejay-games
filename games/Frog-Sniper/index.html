@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Frog Sniper</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body {
+            background: #060713;
+            color: #fff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            max-height: 900px;
+            background: radial-gradient(circle at center, #111430 0%, #070814 100%);
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.9);
+            border: 4px solid #1f2347;
+            border-radius: 16px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 25px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 5;
+            background: linear-gradient(to bottom, rgba(6,7,19,0.9), rgba(0,0,0,0));
+        }
+        .info-box {
+            font-size: 24px;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(0, 245, 212, 0.5);
+            letter-spacing: 1.5px;
+        }
+        #score-box { color: #00f5d4; }
+
+        #screen-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 6, 15, 0.96);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            text-align: center;
+            padding: 30px;
+            backdrop-filter: blur(8px);
+        }
+        h1 {
+            color: #00f5d4;
+            font-size: 44px;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+            text-shadow: 0 0 25px rgba(0, 245, 212, 0.6);
+        }
+        .instructions {
+            color: #a5b4fc;
+            margin-bottom: 40px;
+            font-size: 15px;
+            max-width: 400px;
+            line-height: 1.7;
+            background: rgba(31, 35, 71, 0.3);
+            padding: 25px;
+            border-radius: 14px;
+            border: 1px solid rgba(0, 245, 212, 0.15);
+            text-align: left;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        }
+        .instructions strong {
+            color: #fff;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 17px;
+            color: #00f5d4;
+        }
+        button {
+            background: linear-gradient(135deg, #00f5d4 0%, #00bbf9 100%);
+            color: #060713;
+            border: none;
+            padding: 18px 55px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 30px rgba(0, 245, 212, 0.4);
+            letter-spacing: 1px;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui-layer">
+        <div class="info-box" id="score-box">SCORE: <span id="score">0</span></div>
+    </div>
+
+    <div id="screen-overlay">
+        <h1 id="overlay-title">FROG SNIPER</h1>
+        <div class="instructions" id="overlay-desc">
+            <strong>HOW TO PLAY:</strong>
+            • <b>PC:</b> Click and drag to aim, release left-click to shoot.<br>
+            • <b>Mobile:</b> Hold and slide your finger to aim, lift up to shoot.<br>
+            • Match 3 or more balls of the same color to get 10 points.<br>
+            • Protect the center void terminal from the rolling balls!
+        </div>
+        <button id="action-btn">START GAME</button>
+    </div>
+
+    <canvas id="zumaCanvas"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById('zumaCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const overlay = document.getElementById('screen-overlay');
+const overlayTitle = document.getElementById('overlay-title');
+const overlayDesc = document.getElementById('overlay-desc');
+const actionBtn = document.getElementById('action-btn');
+
+const V_WIDTH = 800;
+const V_HEIGHT = 1200;
+canvas.width = V_WIDTH;
+canvas.height = V_HEIGHT;
+
+const BALL_RADIUS = 20;
+const BALL_SPACING_UNITS = 65; 
+const FROG_RADIUS = 54;
+
+const COLORS = [
+    { main: '#ff3366', light: '#ff7597', glow: 'rgba(255, 51, 102, 0.4)' }, 
+    { main: '#00f5d4', light: '#70fee8', glow: 'rgba(0, 245, 212, 0.4)' }, 
+    { main: '#00bbf9', light: '#70d6ff', glow: 'rgba(0, 187, 249, 0.4)' }, 
+    { main: '#ffb703', light: '#ffd166', glow: 'rgba(255, 183, 3, 0.4)' }, 
+    { main: '#9b59b6', light: '#dfb2f4', glow: 'rgba(155, 89, 182, 0.4)' }  
+];
+
+let PATH = []; 
+let balls = [];
+let bullets = [];
+let particles = [];
+
+let isPlaying = false;
+let score = 0;
+let speedFactor = 0.65; 
+let spawnCooldown = 0;
+let shootCooldown = 0; 
+const SHOOT_DELAY = 12; 
+
+const frogX = V_WIDTH / 2;
+const frogY = V_HEIGHT - 240;
+let frogAngle = -Math.PI / 2;
+let targetAngle = -Math.PI / 2;
+
+let currentBallColor = 0;
+let nextBallColor = 0;
+
+function buildSpiralPath() {
+    PATH = [];
+    const centerX = V_WIDTH / 2;
+    const centerY = 440; 
+    
+    for (let theta = 0; theta < Math.PI * 6.5; theta += 0.004) {
+        let r = 360 - (theta * 17.5);
+        if (r < 25) break; 
+        
+        let x = centerX + r * Math.cos(theta);
+        let y = centerY + r * Math.sin(theta);
+        PATH.push({ x: x, y: y });
+    }
+    PATH.reverse();
+}
+
+function getRandomColor() {
+    return Math.floor(Math.random() * COLORS.length);
+}
+
+function init() {
+    score = 0;
+    speedFactor = 0.65;
+    balls = [];
+    bullets = [];
+    particles = [];
+    shootCooldown = 0;
+    spawnCooldown = 0;
+    frogAngle = -Math.PI / 2;
+    targetAngle = -Math.PI / 2;
+    
+    scoreEl.innerText = score;
+    
+    currentBallColor = getRandomColor();
+    nextBallColor = getRandomColor();
+    buildSpiralPath();
+}
+
+function getEventPos(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: (clientX - rect.left) * (V_WIDTH / rect.width),
+        y: (clientY - rect.top) * (V_HEIGHT / rect.height)
+    };
+}
+
+function updateTargetAngle(clientX, clientY) {
+    if (!isPlaying) return;
+    const pos = getEventPos(clientX, clientY);
+    targetAngle = Math.atan2(pos.y - frogY, pos.x - frogX);
+}
+
+function shoot() {
+    if (!isPlaying || shootCooldown > 0) return;
+
+    // Bullet speed adjusted to 14 (Slower and smoother for steady visual tracking)
+    const bulletSpeed = 14; 
+    bullets.push({
+        x: frogX + Math.cos(frogAngle) * FROG_RADIUS,
+        y: frogY + Math.sin(frogAngle) * FROG_RADIUS,
+        vx: Math.cos(frogAngle) * bulletSpeed,
+        vy: Math.sin(frogAngle) * bulletSpeed,
+        colorIndex: currentBallColor
+    });
+
+    currentBallColor = nextBallColor;
+    nextBallColor = getRandomColor();
+    shootCooldown = SHOOT_DELAY; 
+}
+
+// HYBRID CONTROLS (Both Mobile Touch & PC Mouse Support)
+let isTracking = false;
+
+// PC Mouse Controls
+window.addEventListener('mousedown', (e) => {
+    if(!isPlaying || e.target.tagName === 'BUTTON') return;
+    isTracking = true;
+    updateTargetAngle(e.clientX, e.clientY);
+});
+window.addEventListener('mousemove', (e) => {
+    if (isTracking) updateTargetAngle(e.clientX, e.clientY);
+});
+window.addEventListener('mouseup', (e) => {
+    if (isTracking) {
+        isTracking = false;
+        shoot();
+    }
+});
+
+// Mobile Touch Controls
+window.addEventListener('touchstart', (e) => {
+    if(!isPlaying || e.target.tagName === 'BUTTON') return;
+    isTracking = true;
+    updateTargetAngle(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+
+window.addEventListener('touchmove', (e) => {
+    if (isTracking) updateTargetAngle(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+
+window.addEventListener('touchend', (e) => {
+    if (isTracking) {
+        isTracking = false;
+        shoot();
+    }
+}, { passive: false });
+
+
+function createExplosion(x, y, color) {
+    for (let i = 0; i < 20; i++) {
+        particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 12,
+            vy: (Math.random() - 0.5) * 12,
+            radius: Math.random() * 5 + 1.5,
+            color: color.main,
+            alpha: 1
+        });
+    }
+}
+
+function update() {
+    if (!isPlaying) return;
+
+    if (shootCooldown > 0) shootCooldown--;
+
+    let angleDiff = targetAngle - frogAngle;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    frogAngle += angleDiff * 0.16; 
+
+    // 1. Spawning
+    if (spawnCooldown > 0) {
+        spawnCooldown--;
+    } else {
+        let spaceClear = true;
+        if (balls.length > 0 && balls[0].pathIndex < BALL_SPACING_UNITS) {
+            spaceClear = false;
+        }
+        if (spaceClear) {
+            balls.unshift({
+                pathIndex: 0,
+                x: PATH[0].x,
+                y: PATH[0].y,
+                colorIndex: getRandomColor()
+            });
+            spawnCooldown = 30; 
+        }
+    }
+
+    // 2. Chain Movement (Anti-Clumping Solid Gap System)
+    for (let i = 0; i < balls.length; i++) {
+        if (i === 0) {
+            balls[i].pathIndex += speedFactor;
+        } else {
+            let idealPosition = balls[i-1].pathIndex + BALL_SPACING_UNITS;
+            if (balls[i].pathIndex < idealPosition) {
+                balls[i].pathIndex += speedFactor;
+            }
+            if (balls[i].pathIndex < idealPosition) {
+                balls[i].pathIndex = idealPosition;
+            }
+        }
+
+        let idx = Math.floor(balls[i].pathIndex);
+        if (idx < PATH.length) {
+            balls[i].x = PATH[idx].x;
+            balls[i].y = PATH[idx].y;
+        } else {
+            balls = [];
+            gameOver();
+            return;
+        }
+    }
+
+    // 3. Bullet Processing
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.x += b.vx;
+        b.y += b.vy;
+
+        if (b.x < 0 || b.x > V_WIDTH || b.y < 0 || b.y > V_HEIGHT) {
+            bullets.splice(i, 1);
+            continue;
+        }
+
+        for (let j = 0; j < balls.length; j++) {
+            let ball = balls[j];
+            let dist = Math.hypot(b.x - ball.x, b.y - ball.y);
+
+            if (dist < BALL_RADIUS * 1.8) {
+                if (b.colorIndex === ball.colorIndex) {
+                    let matchGroup = [j];
+
+                    for (let k = j - 1; k >= 0; k--) {
+                        if (balls[k].colorIndex === b.colorIndex) matchGroup.push(k);
+                        else break;
+                    }
+                    for (let k = j + 1; k < balls.length; k++) {
+                        if (balls[k].colorIndex === b.colorIndex) matchGroup.push(k);
+                        else break;
+                    }
+
+                    if (matchGroup.length >= 2) {
+                        matchGroup.sort((x, y) => y - x);
+                        createExplosion(ball.x, ball.y, COLORS[b.colorIndex]);
+                        
+                        for (let index of matchGroup) {
+                            balls.splice(index, 1);
+                        }
+                        score += 10;
+                        scoreEl.innerText = score;
+                        
+                        if (score % 100 === 0) speedFactor += 0.08;
+                    } else {
+                        insertIntoChain(j, b.colorIndex);
+                    }
+                } else {
+                    insertIntoChain(j, b.colorIndex);
+                }
+                bullets.splice(i, 1);
+                break;
+            }
+        }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.alpha -= 0.035;
+        if (p.alpha <= 0) particles.splice(i, 1);
+    }
+}
+
+function insertIntoChain(hitIndex, colorIndex) {
+    let target = balls[hitIndex];
+    balls.splice(hitIndex, 0, {
+        pathIndex: Math.max(0, target.pathIndex - BALL_SPACING_UNITS),
+        x: target.x,
+        y: target.y,
+        colorIndex: colorIndex
+    });
+}
+
+function drawBall(x, y, radius, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = color.glow;
+
+    ctx.fillStyle = color.main;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = color.light;
+    ctx.beginPath();
+    ctx.arc(-radius/3, -radius/3, radius/3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
+function draw() {
+    ctx.clearRect(0, 0, V_WIDTH, V_HEIGHT);
+
+    // 1. Rails Layout
+    ctx.strokeStyle = '#141733';
+    ctx.lineWidth = 56;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    PATH.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+    });
+    ctx.stroke();
+
+    ctx.strokeStyle = '#1d2252';
+    ctx.lineWidth = 6;
+    ctx.setLineDash([15, 10]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 2. High Vis Sniper Laser Guide Line
+    if (isPlaying) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(0, 245, 212, 0.4)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(frogX, frogY);
+        ctx.lineTo(frogX + Math.cos(frogAngle) * 1100, frogY + Math.sin(frogAngle) * 1100);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // 3. Central Sinkhole Void
+    if (PATH.length > 0) {
+        let endNode = PATH[PATH.length - 1];
+        ctx.save();
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ff3366';
+        ctx.fillStyle = '#030408';
+        ctx.strokeStyle = '#ff3366';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(endNode.x, endNode.y, 36, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // 4. Game Entities
+    for (let ball of balls) drawBall(ball.x, ball.y, BALL_RADIUS, COLORS[ball.colorIndex]);
+    for (let b of bullets) drawBall(b.x, b.y, BALL_RADIUS * 0.95, COLORS[b.colorIndex]);
+
+    // 5. Frog Shooter Avatar
+    ctx.save();
+    ctx.translate(frogX, frogY);
+    ctx.rotate(frogAngle + Math.PI / 2);
+
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = 'rgba(0, 245, 212, 0.5)';
+    ctx.fillStyle = '#00f5d4'; 
+    ctx.beginPath();
+    ctx.arc(0, 0, FROG_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    ctx.fillStyle = '#ffffff'; 
+    ctx.beginPath();
+    ctx.arc(-22, -34, 13, 0, Math.PI * 2);
+    ctx.arc(22, -34, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#060713';
+    ctx.beginPath();
+    ctx.arc(-22, -37, 6, 0, Math.PI * 2);
+    ctx.arc(22, -37, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#111430'; 
+    ctx.beginPath();
+    ctx.arc(0, -14, 20, 0, Math.PI, true);
+    ctx.fill();
+    ctx.restore();
+
+    drawBall(frogX, frogY, BALL_RADIUS * 0.85, COLORS[currentBallColor]);
+    drawBall(frogX + 85, frogY + 45, BALL_RADIUS * 0.55, COLORS[nextBallColor]);
+
+    for (let p of particles) {
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+function gameOver() {
+    isPlaying = false;
+    isTracking = false;
+    overlayTitle.innerText = "GAME OVER";
+    overlayTitle.style.color = "#ff3366";
+    overlayDesc.innerHTML = `<strong>MISSION FAILED!</strong><br><br>The balls breached the center void terminal.<br><br><strong>Final Score: ${score}</strong>`;
+    actionBtn.innerText = "RETRY CHALLENGE";
+    overlay.classList.remove('hidden');
+}
+
+actionBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    overlay.classList.add('hidden');
+    init();
+    isPlaying = true;
+});
+
+buildSpiralPath();
+draw();
+loop();
+</script>
+
+</body>
+</html>
