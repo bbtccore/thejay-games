@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dice Merge Master Pro</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body {
+            background: #15120e;
+            background-image: radial-gradient(circle, #2c231a 0%, #0d0a08 100%);
+            color: #fff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            max-height: 850px;
+            background: #231b14;
+            border: 4px solid #4a3a2c;
+            border-radius: 24px;
+            box-shadow: 0 15px 60px rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+            overflow: hidden;
+        }
+        
+        /* Top HUD Bar */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 12px 20px;
+            border-radius: 14px;
+            border: 2px solid #3d2f23;
+        }
+        .hud-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .hud-label {
+            font-size: 11px;
+            color: #a38f7e;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+        .hud-value {
+            font-size: 24px;
+            font-weight: 900;
+        }
+        #score-val { color: #ffb703; text-shadow: 0 0 10px rgba(255,183,3,0.3); }
+        #timer-val { color: #e74c3c; text-shadow: 0 0 10px rgba(231,76,60,0.3); }
+
+        /* Board Container and Particles Layer */
+        #board-wrapper {
+            position: relative;
+            flex-grow: 1;
+            margin: 15px 0;
+        }
+        #grid-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 6px;
+            background: #35291e;
+            padding: 10px;
+            border-radius: 18px;
+            border: 4px solid #4e3d2f;
+            box-shadow: inset 0 0 25px rgba(0,0,0,0.7);
+            width: 100%;
+            height: 100%;
+        }
+        #fx-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        /* Cells and Blocks Layout */
+        .cell {
+            background: linear-gradient(135deg, #645445 0%, #3e3328 100%);
+            border-radius: 12px;
+            border: 2px solid #2b2219;
+            box-shadow: inset 0 3px 3px rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .cell:active {
+            transform: scale(0.96);
+        }
+
+        /* High Definition Dice Aesthetics */
+        .dice {
+            width: 88%;
+            height: 88%;
+            border-radius: 14px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            padding: 6px;
+            gap: 3px;
+            box-shadow: 0 5px 8px rgba(0,0,0,0.5), inset 0 3px 5px rgba(255,255,255,0.35);
+            border: 2px solid rgba(0,0,0,0.25);
+            animation: spawnPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes spawnPop {
+            0% { transform: scale(0.6); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .dot {
+            background: #ffffff;
+            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            max-width: 8px;
+            max-height: 8px;
+            margin: auto;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .dice-1 { background: linear-gradient(135deg, #af69cd 0%, #8844a4 100%); } 
+        .dice-2 { background: linear-gradient(135deg, #ff9433 0%, #d35400 100%); } 
+        .dice-3 { background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); } 
+        .dice-4 { background: linear-gradient(135deg, #5dade2 0%, #2e86c1 100%); } 
+        .dice-5 { background: linear-gradient(135deg, #f4d03f 0%, #f39c12 100%); } 
+        .dice-6 { background: linear-gradient(135deg, #ec7063 0%, #c0392b 100%); } 
+
+        /* Game System Control Deck */
+        #control-deck {
+            background: rgba(0,0,0,0.4);
+            border: 2px solid #3d2f23;
+            border-radius: 18px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .powerup-btn {
+            background: linear-gradient(135deg, #4b5156 0%, #2c3034 100%);
+            border: 2px solid #1a1c1e;
+            color: #fff;
+            width: 58px;
+            height: 58px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+        }
+        .powerup-btn.active {
+            border-color: #ffb703;
+            box-shadow: 0 0 15px #ffb703;
+        }
+        #preview-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #3e3328;
+            padding: 8px;
+            border-radius: 14px;
+            border: 3px solid #574738;
+        }
+        .preview-pair {
+            display: flex;
+            gap: 6px;
+            margin: 5px 0;
+            width: 95px;
+            height: 48px;
+            justify-content: center;
+            align-items: center;
+        }
+        .rotate-btn {
+            background: #ffb703;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            color: #231b14;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Screens and Overlays Architecture */
+        .screen-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(18, 14, 10, 0.98);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            backdrop-filter: blur(6px);
+        }
+        .screen-overlay h1 {
+            color: #ffb703;
+            font-size: 34px;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255,183,3,0.4);
+        }
+        .instructions {
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid #3d2f23;
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #cca98e;
+            text-align: left;
+            margin-bottom: 30px;
+            max-width: 340px;
+        }
+        .instructions b { color: #fff; }
+        .action-btn {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+            border: none;
+            padding: 16px 45px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 35px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(46,204,113,0.4);
+            letter-spacing: 0.5px;
+        }
+        .action-btn:active { transform: scale(0.97); }
+        .danger-title { color: #e74c3c !important; text-shadow: 0 0 20px rgba(231,76,60,0.4) !important; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <header>
+        <div class="hud-box">
+            <span class="hud-label">Score</span>
+            <span id="score-val" class="hud-value">0</span>
+        </div>
+        <div class="hud-box">
+            <span class="hud-label">Time Left</span>
+            <span id="timer-val" class="hud-value">0:51</span>
+        </div>
+    </header>
+
+    <div id="board-wrapper">
+        <div id="grid-board"></div>
+        <canvas id="fx-canvas"></canvas>
+    </div>
+
+    <div id="control-deck">
+        <button class="powerup-btn" id="bomb-btn" onclick="activatePowerUp('bomb')">💣</button>
+        
+        <div id="preview-box">
+            <button class="rotate-btn" onclick="rotatePreview()">↻</button>
+            <div class="preview-pair" id="preview-pair-container"></div>
+        </div>
+
+        <button class="powerup-btn" id="cannon-btn" onclick="activatePowerUp('cannon')">🚀</button>
+    </div>
+
+    <div id="start-screen" class="screen-overlay">
+        <h1>DICE MERGE MASTER</h1>
+        <div class="instructions">
+            <b>HOW TO PLAY:</b><br>
+            • Click/Tap the arrow button to <b>rotate</b> the blocks.<br>
+            • Tap any empty slot on the grid to <b>place</b> the dice.<br>
+            • Connect <b>3 or more identical dice</b> to trigger a mega merge explosion and score points!<br>
+            • Clear as many rows as possible before the time limit ends.
+        </div>
+        <button class="action-btn" onclick="startGame()">START GAME</button>
+    </div>
+
+    <!-- Post-game Score Overlay Screen -->
+    <div id="gameover-screen" class="screen-overlay hidden">
+        <h1 class="danger-title">GAME OVER</h1>
+        <p style="font-size: 16px; color: #a38f7e; margin-bottom: 5px;">TIME'S UP OR BOARD FULL!</p>
+        <p style="font-size: 26px; font-weight: bold; margin-bottom: 35px; color: #ffb703;">Final Score: <span id="final-score">0</span></p>
+        <button class="action-btn" onclick="resetGame()">PLAY AGAIN</button>
+    </div>
+</div>
+
+<script>
+    const ROWS = 6;
+    const COLS = 5;
+    let board = [];
+    let score = 0;
+    let timeLeft = 60; 
+    let gameInterval = null;
+    let isPlaying = false;
+    
+    let currentPair = { dice1: 1, dice2: 2, isVertical: false };
+    let activePowerUp = null;
+
+    const boardEl = document.getElementById('grid-board');
+    const scoreEl = document.getElementById('score-val');
+    const timerEl = document.getElementById('timer-val');
+    const startScreen = document.getElementById('start-screen');
+    const gameoverScreen = document.getElementById('gameover-screen');
+    const finalScoreEl = document.getElementById('final-score');
+
+    // Canvas Settings for Particle Visual Effects
+    const canvas = document.getElementById('fx-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    const DICE_DOTS = {
+        1: [4], 2: [2, 6], 3: [2, 4, 6],
+        4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8]
+    };
+
+    const DICE_COLORS = {
+        1: '#8844a4', 2: '#d35400', 3: '#27ae60',
+        4: '#2e86c1', 5: '#f39c12', 6: '#c0392b'
+    };
+
+    // Synthesized Sound Engine using HTML5 Web Audio API
+    const AudioEngine = {
+        ctx: null,
+        init() {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        },
+        playPop() {
+            if(!this.ctx) return;
+            let osc = this.ctx.createOscillator();
+            let gain = this.ctx.createGain();
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.1);
+            osc.start(); osc.stop(this.ctx.currentTime + 0.1);
+        },
+        playMerge() {
+            if(!this.ctx) return;
+            let osc = this.ctx.createOscillator();
+            let gain = this.ctx.createGain();
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.25);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.25);
+            osc.start(); osc.stop(this.ctx.currentTime + 0.25);
+        },
+        playGameOver() {
+            if(!this.ctx) return;
+            let osc = this.ctx.createOscillator();
+            let gain = this.ctx.createGain();
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(120, this.ctx.currentTime + 0.6);
+            gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.6);
+            osc.start(); osc.stop(this.ctx.currentTime + 0.6);
+        }
+    };
+
+    function resizeCanvas() {
+        canvas.width = boardEl.clientWidth;
+        canvas.height = boardEl.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function buildMatrixBoard() {
+        boardEl.innerHTML = '';
+        board = [];
+        for (let r = 0; r < ROWS; r++) {
+            board[r] = [];
+            for (let c = 0; c < COLS; c++) {
+                board[r][c] = 0;
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.row = r;
+                cell.dataset.col = c;
+                cell.addEventListener('click', () => handleCellClick(r, c));
+                boardEl.appendChild(cell);
+            }
+        }
+        generateNewPair();
+        renderBoardData();
+        setTimeout(resizeCanvas, 100);
+    }
+
+    function createDiceHTML(value) {
+        if (value === 0) return '';
+        let html = `<div class="dice dice-${value}">`;
+        const dotsActive = DICE_DOTS[value] || [];
+        for (let i = 0; i < 9; i++) {
+            html += dotsActive.includes(i) ? `<div class="dot"></div>` : `<div></div>`;
+        }
+        html += `</div>`;
+        return html;
+    }
+
+    function renderBoardData() {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(cell => {
+            const r = parseInt(cell.dataset.row);
+            const c = parseInt(cell.dataset.col);
+            cell.innerHTML = createDiceHTML(board[r][c]);
+        });
+        scoreEl.innerText = score;
+        updateTimerUI();
+    }
+
+    function updateTimerUI() {
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+        timerEl.innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    }
+
+    function generateNewPair() {
+        let baseValue = Math.floor(Math.random() * 4) + 1; 
+        if (Math.random() < 0.5) {
+            currentPair.dice1 = baseValue;
+            currentPair.dice2 = baseValue;
+        } else {
+            currentPair.dice1 = baseValue;
+            currentPair.dice2 = Math.floor(Math.random() * 4) + 1;
+        }
+        currentPair.isVertical = false;
+        renderPreview();
+    }
+
+    function renderPreview() {
+        const container = document.getElementById('preview-pair-container');
+        if (currentPair.isVertical) {
+            container.style.flexDirection = 'column';
+            container.style.width = '48px'; container.style.height = '95px';
+        } else {
+            container.style.flexDirection = 'row';
+            container.style.width = '95px'; container.style.height = '48px';
+        }
+        container.innerHTML = createDiceHTML(currentPair.dice1) + createDiceHTML(currentPair.dice2);
+    }
+
+    function rotatePreview() {
+        currentPair.isVertical = !currentPair.isVertical;
+        renderPreview();
+    }
+
+    function activatePowerUp(type) {
+        if (!isPlaying) return;
+        if (activePowerUp === type) {
+            activePowerUp = null;
+            document.getElementById(`${type}-btn`).classList.remove('active');
+        } else {
+            if(activePowerUp) document.getElementById(`${activePowerUp}-btn`).classList.remove('active');
+            activePowerUp = type;
+            document.getElementById(`${type}-btn`).classList.add('active');
+        }
+    }
+
+    function triggerMatchVisualFX(r, c, color) {
+        const targetCell = document.querySelector(`.cell[data-row='${r}'][data-col='${c}']`);
+        if (!targetCell) return;
+        
+        let targetX = targetCell.offsetLeft + targetCell.clientWidth / 2;
+        let targetY = targetCell.offsetTop + targetCell.clientHeight / 2;
+
+        for (let i = 0; i < 15; i++) {
+            particles.push({
+                x: targetX,
+                y: targetY,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                radius: Math.random() * 4 + 2,
+                color: color,
+                alpha: 1,
+                decay: Math.random() * 0.03 + 0.02
+            });
+        }
+    }
+
+    function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.alpha -= p.decay;
+            
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            if (p.alpha <= 0) particles.splice(i, 1);
+        }
+        requestAnimationFrame(animateParticles);
+    }
+
+    function handleCellClick(r, c) {
+        if (!isPlaying) return;
+
+        if (activePowerUp === 'bomb') {
+            triggerMatchVisualFX(r, c, '#7f8c8d');
+            board[r][c] = 0;
+            activePowerUp = null;
+            document.getElementById('bomb-btn').classList.remove('active');
+            AudioEngine.playMerge();
+            renderBoardData();
+            return;
+        }
+        if (activePowerUp === 'cannon') {
+            for (let i = 0; i < COLS; i++) {
+                if(board[r][i] !== 0) triggerMatchVisualFX(r, i, '#7f8c8d');
+                board[r][i] = 0;
+            }
+            activePowerUp = null;
+            document.getElementById('cannon-btn').classList.remove('active');
+            AudioEngine.playMerge();
+            renderBoardData();
+            return;
+        }
+
+        let r2 = currentPair.isVertical ? r + 1 : r;
+        let c2 = currentPair.isVertical ? c : c + 1;
+
+        if (r2 >= ROWS || c2 >= COLS) return;
+        if (board[r][c] !== 0 || board[r2][c2] !== 0) return;
+
+        board[r][c] = currentPair.dice1;
+        board[r2][c2] = currentPair.dice2;
+
+        AudioEngine.playPop();
+        processMerges();
+        generateNewPair();
+        renderBoardData();
+
+        if (checkGameOver()) {
+            endGame();
+        }
+    }
+
+    function processMerges() {
+        let mergedAny = false;
+        do {
+            mergedAny = false;
+            let visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] !== 0 && !visited[r][c]) {
+                        let matchGroup = [];
+                        findMatches(r, c, board[r][c], matchGroup, visited);
+
+                        if (matchGroup.length >= 3) {
+                            let val = board[r][c];
+                            let nextVal = val < 6 ? val + 1 : 6;
+                            let matchColor = DICE_COLORS[val] || '#fff';
+
+                            matchGroup.forEach(pos => {
+                                triggerMatchVisualFX(pos.r, pos.c, matchColor);
+                                board[pos.r][pos.c] = 0;
+                            });
+
+                            board[r][c] = nextVal;
+                            score += 10;
+                            mergedAny = true;
+                            AudioEngine.playMerge();
+                        }
+                    }
+                }
+            }
+        } while (mergedAny);
+    }
+
+    function findMatches(r, c, val, group, visited) {
+        if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+        if (visited[r][c] || board[r][c] !== val) return;
+
+        visited[r][c] = true;
+        group.push({ r, c });
+
+        findMatches(r + 1, c, val, group, visited);
+        findMatches(r - 1, c, val, group, visited);
+        findMatches(r, c + 1, val, group, visited);
+        findMatches(r, c - 1, val, group, visited);
+    }
+
+    function checkGameOver() {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (board[r][c] === 0) {
+                    if (c + 1 < COLS && board[r][c + 1] === 0) return false;
+                    if (r + 1 < ROWS && board[r + 1][c] === 0) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    function startGame() {
+        AudioEngine.init();
+        startScreen.classList.add('hidden');
+        isPlaying = true;
+        
+        // Start 60 Seconds Countdown Progression Loop
+        gameInterval = setInterval(() => {
+            if (isPlaying) {
+                timeLeft--;
+                updateTimerUI();
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }
+        }, 1000);
+    }
+
+    function endGame() {
+        isPlaying = false;
+        clearInterval(gameInterval);
+        AudioEngine.playGameOver();
+        finalScoreEl.innerText = score;
+        gameoverScreen.classList.remove('hidden');
+    }
+
+    function resetGame() {
+        score = 0;
+        timeLeft = 60;
+        gameoverScreen.classList.add('hidden');
+        if(activePowerUp) {
+            document.getElementById(`${activePowerUp}-btn`).classList.remove('active');
+            activePowerUp = null;
+        }
+        buildMatrixBoard();
+        isPlaying = true;
+        startGame();
+    }
+
+    // Initialize System Core
+    buildMatrixBoard();
+    animateParticles();
+</script>
+</body>
+</html>
