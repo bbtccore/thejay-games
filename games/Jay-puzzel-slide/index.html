@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Jay Puzzle Slide</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Arial, sans-serif;
+  color:white;
+  background:
+    radial-gradient(circle at top,#4c1d95,#180026 60%,#06000b);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  touch-action:manipulation;
+}
+.wrap{
+  width:min(94vw,430px);
+  text-align:center;
+}
+.card{
+  background:rgba(20,0,35,.82);
+  border:1px solid rgba(216,180,254,.65);
+  border-radius:26px;
+  padding:18px;
+  box-shadow:0 0 35px rgba(168,85,247,.45);
+}
+h1{
+  margin:0 0 8px;
+  color:#eadcff;
+  text-shadow:0 0 20px #a855f7;
+}
+.sub{
+  color:#dac5ff;
+  font-size:14px;
+  line-height:1.45;
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin:14px 0;
+}
+.box{
+  background:rgba(76,29,149,.45);
+  border:1px solid rgba(216,180,254,.35);
+  border-radius:14px;
+  padding:9px 5px;
+  font-weight:bold;
+  font-size:13px;
+}
+.board{
+  width:min(88vw,360px);
+  height:min(88vw,360px);
+  margin:12px auto;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(3,1fr);
+  gap:7px;
+  padding:7px;
+  border-radius:22px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.22);
+  box-shadow:inset 0 0 22px rgba(0,0,0,.35);
+}
+.tile{
+  border:0;
+  border-radius:16px;
+  color:white;
+  font-size:34px;
+  font-weight:900;
+  cursor:pointer;
+  background:
+    linear-gradient(135deg,rgba(124,58,237,.95),rgba(217,70,239,.95));
+  box-shadow:0 0 16px rgba(217,70,239,.35);
+  text-shadow:0 0 10px rgba(0,0,0,.55);
+  transition:transform .12s, box-shadow .12s;
+  position:relative;
+  overflow:hidden;
+}
+.tile:active{transform:scale(.95)}
+.tile::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(45deg,transparent 35%,rgba(255,255,255,.22),transparent 65%);
+}
+.tile small{
+  display:block;
+  font-size:13px;
+  margin-top:2px;
+  color:#f5d0fe;
+}
+.empty{
+  background:rgba(255,255,255,.04);
+  box-shadow:inset 0 0 16px rgba(0,0,0,.4);
+  cursor:default;
+}
+.empty::before{display:none}
+.actions{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+button.action{
+  border:0;
+  border-radius:999px;
+  padding:12px 18px;
+  color:white;
+  font-weight:bold;
+  background:linear-gradient(135deg,#7c3aed,#d946ef);
+  box-shadow:0 0 18px rgba(217,70,239,.5);
+}
+.message{
+  min-height:28px;
+  color:#f0abfc;
+  font-weight:bold;
+  margin-top:10px;
+}
+.preview{
+  margin-top:12px;
+  color:#c4b5fd;
+  font-size:13px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>🧩 Jay Puzzle Slide</h1>
+    <div class="sub">Arrange the JAY tiles from 1 to 8. Tap a tile beside the empty space to move it.</div>
+
+    <div class="stats">
+      <div class="box">Moves<br><span id="moves">0</span></div>
+      <div class="box">Time<br><span id="time">0s</span></div>
+      <div class="box">Best<br><span id="best">-</span></div>
+    </div>
+
+    <div id="board" class="board"></div>
+
+    <div class="actions">
+      <button class="action" onclick="shufflePuzzle()">Shuffle</button>
+      <button class="action" onclick="resetPuzzle()">Reset</button>
+    </div>
+
+    <div id="message" class="message"></div>
+    <div class="preview">Goal: 1 2 3 / 4 5 6 / 7 8 empty</div>
+  </div>
+</div>
+
+<script>
+const boardEl=document.getElementById("board");
+const movesEl=document.getElementById("moves");
+const timeEl=document.getElementById("time");
+const bestEl=document.getElementById("best");
+const msgEl=document.getElementById("message");
+
+let tiles=[1,2,3,4,5,6,7,8,0];
+let moves=0;
+let seconds=0;
+let timer=null;
+let started=false;
+let audioCtx;
+let best=localStorage.getItem("jayPuzzleBest") || "";
+
+if(best) bestEl.textContent=best+"s";
+
+function sound(freq=440,type="sine",dur=.08,vol=.08){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.frequency.value=freq;
+  o.type=type;
+  g.gain.value=vol;
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+dur);
+  o.stop(audioCtx.currentTime+dur);
+}
+
+function render(){
+  boardEl.innerHTML="";
+  tiles.forEach((num,i)=>{
+    const btn=document.createElement("button");
+    btn.className="tile"+(num===0?" empty":"");
+    if(num!==0){
+      btn.innerHTML=`${num}<small>JAY</small>`;
+      btn.onclick=()=>moveTile(i);
+    }
+    boardEl.appendChild(btn);
+  });
+  movesEl.textContent=moves;
+  timeEl.textContent=seconds+"s";
+}
+
+function startTimer(){
+  if(started)return;
+  started=true;
+  timer=setInterval(()=>{
+    seconds++;
+    timeEl.textContent=seconds+"s";
+  },1000);
+}
+
+function canMove(i){
+  const empty=tiles.indexOf(0);
+  const r1=Math.floor(i/3),c1=i%3;
+  const r2=Math.floor(empty/3),c2=empty%3;
+  return Math.abs(r1-r2)+Math.abs(c1-c2)===1;
+}
+
+function moveTile(i){
+  if(!canMove(i)){
+    sound(130,"sawtooth",.06);
+    return;
+  }
+  startTimer();
+  const empty=tiles.indexOf(0);
+  [tiles[i],tiles[empty]]=[tiles[empty],tiles[i]];
+  moves++;
+  msgEl.textContent="";
+  sound(520,"triangle",.06);
+  render();
+  if(isSolved()) win();
+}
+
+function isSolved(){
+  return tiles.join(",")==="1,2,3,4,5,6,7,8,0";
+}
+
+function win(){
+  clearInterval(timer);
+  timer=null;
+  started=false;
+  sound(800,"sine",.12);
+  setTimeout(()=>sound(1000,"sine",.12),100);
+  msgEl.textContent=`🎉 Completed in ${moves} moves and ${seconds}s!`;
+  if(!best || seconds<Number(best)){
+    best=seconds;
+    localStorage.setItem("jayPuzzleBest",best);
+    bestEl.textContent=best+"s";
+  }
+}
+
+function shufflePuzzle(){
+  resetState();
+  let empty=8;
+  for(let step=0;step<180;step++){
+    const possible=[];
+    for(let i=0;i<9;i++){
+      const r1=Math.floor(i/3),c1=i%3;
+      const r2=Math.floor(empty/3),c2=empty%3;
+      if(Math.abs(r1-r2)+Math.abs(c1-c2)===1) possible.push(i);
+    }
+    const pick=possible[Math.floor(Math.random()*possible.length)];
+    [tiles[pick],tiles[empty]]=[tiles[empty],tiles[pick]];
+    empty=pick;
+  }
+  if(isSolved()) shufflePuzzle();
+  msgEl.textContent="Puzzle shuffled. Start solving!";
+  sound(650,"triangle",.1);
+  render();
+}
+
+function resetState(){
+  clearInterval(timer);
+  timer=null;
+  started=false;
+  moves=0;
+  seconds=0;
+}
+
+function resetPuzzle(){
+  resetState();
+  tiles=[1,2,3,4,5,6,7,8,0];
+  msgEl.textContent="Reset to solved position.";
+  sound(420,"sine",.08);
+  render();
+}
+
+shufflePuzzle();
+</script>
+</body>
+</html>
